@@ -1,8 +1,10 @@
 import { useState, useRef, useEffect } from "react";
 import ReactPlayer from "react-player";
-import { Play, Pause, SkipBack, SkipForward, Volume2, VolumeX, Maximize } from "lucide-react";
+import { Play, Pause, SkipBack, SkipForward, Volume2, VolumeX, Maximize, Settings, AudioLines, Subtitles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 interface VideoPlayerProps {
   videoUrl: string;
@@ -29,6 +31,11 @@ export function VideoPlayer({
   const [volume, setVolume] = useState(0.8);
   const [muted, setMuted] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [audioTracks, setAudioTracks] = useState<any[]>([]);
+  const [subtitleTracks, setSubtitleTracks] = useState<any[]>([]);
+  const [selectedAudioTrack, setSelectedAudioTrack] = useState<string>('');
+  const [selectedSubtitleTrack, setSelectedSubtitleTrack] = useState<string>('off');
+  const [showSettings, setShowSettings] = useState(false);
   const playerRef = useRef<ReactPlayer>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const controlsTimeoutRef = useRef<NodeJS.Timeout>();
@@ -58,6 +65,38 @@ export function VideoPlayer({
       playerRef.current.seekTo(currentTime, 'seconds');
     }
   }, [currentTime]);
+
+  // Handle audio track switching
+  useEffect(() => {
+    const player = playerRef.current;
+    if (player && player.getInternalPlayer && selectedAudioTrack) {
+      const internalPlayer = player.getInternalPlayer();
+      if (internalPlayer && internalPlayer.audioTracks) {
+        const tracks = internalPlayer.audioTracks;
+        for (let i = 0; i < tracks.length; i++) {
+          tracks[i].enabled = tracks[i].id === selectedAudioTrack || i.toString() === selectedAudioTrack;
+        }
+      }
+    }
+  }, [selectedAudioTrack]);
+
+  // Handle subtitle track switching
+  useEffect(() => {
+    const player = playerRef.current;
+    if (player && player.getInternalPlayer && selectedSubtitleTrack) {
+      const internalPlayer = player.getInternalPlayer();
+      if (internalPlayer && internalPlayer.textTracks) {
+        const tracks = internalPlayer.textTracks;
+        for (let i = 0; i < tracks.length; i++) {
+          if (selectedSubtitleTrack === 'off') {
+            tracks[i].mode = 'disabled';
+          } else {
+            tracks[i].mode = tracks[i].id === selectedSubtitleTrack || i.toString() === selectedSubtitleTrack ? 'showing' : 'disabled';
+          }
+        }
+      }
+    }
+  }, [selectedSubtitleTrack]);
 
   const handleMouseMove = () => {
     setShowControls(true);
@@ -117,7 +156,51 @@ export function VideoPlayer({
             height="100%"
             onProgress={({ played }) => onProgress(played)}
             onDuration={onDuration}
+            onReady={() => {
+              // Get available tracks when video is ready
+              const player = playerRef.current;
+              if (player && player.getInternalPlayer) {
+                const internalPlayer = player.getInternalPlayer();
+                if (internalPlayer && internalPlayer.videoTracks) {
+                  // Get audio tracks
+                  const audioTracks = internalPlayer.audioTracks || [];
+                  setAudioTracks(Array.from(audioTracks));
+                  
+                  // Get subtitle tracks
+                  const textTracks = internalPlayer.textTracks || [];
+                  setSubtitleTracks(Array.from(textTracks));
+                }
+              }
+            }}
             config={{
+              file: {
+                attributes: {
+                  crossOrigin: 'anonymous',
+                  preload: 'metadata',
+                  // Force audio loading for MKV files
+                  onLoadedMetadata: (e: any) => {
+                    const video = e.target;
+                    if (video.audioTracks && video.audioTracks.length > 0) {
+                      setAudioTracks(Array.from(video.audioTracks));
+                      // Enable first audio track by default
+                      video.audioTracks[0].enabled = true;
+                    }
+                    if (video.textTracks && video.textTracks.length > 0) {
+                      setSubtitleTracks(Array.from(video.textTracks));
+                    }
+                  }
+                },
+                tracks: subtitleTracks.map((track, index) => ({
+                  kind: 'subtitles',
+                  src: track.src || '',
+                  srcLang: track.language || 'en',
+                  label: track.label || `Track ${index + 1}`,
+                  default: selectedSubtitleTrack === track.id
+                })),
+                forceAudio: true,
+                forceHLS: false,
+                forceDASH: false
+              },
               youtube: {
                 playerVars: {
                   showinfo: 0,
@@ -251,6 +334,66 @@ export function VideoPlayer({
               </div>
 
               <div className="flex items-center space-x-4">
+                {/* Audio/Subtitle Settings */}
+                <Popover open={showSettings} onOpenChange={setShowSettings}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="p-2 hover:bg-gray-700 rounded-lg"
+                    >
+                      <Settings className="h-4 w-4 on-surface-variant" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-80 surface-variant border-gray-600" align="end">
+                    <div className="space-y-4">
+                      <h4 className="font-medium on-surface">Audio & Subtitles</h4>
+                      
+                      {/* Audio Track Selection */}
+                      <div className="space-y-2">
+                        <label className="text-sm on-surface-variant flex items-center gap-2">
+                          <AudioLines className="h-4 w-4" />
+                          Audio Track
+                        </label>
+                        <Select value={selectedAudioTrack} onValueChange={setSelectedAudioTrack}>
+                          <SelectTrigger className="surface border-gray-600">
+                            <SelectValue placeholder="Select audio track" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="default">Default</SelectItem>
+                            {audioTracks.map((track, index) => (
+                              <SelectItem key={index} value={track.id || index.toString()}>
+                                {track.label || track.language || `Track ${index + 1}`}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      {/* Subtitle Track Selection */}
+                      <div className="space-y-2">
+                        <label className="text-sm on-surface-variant flex items-center gap-2">
+                          <Subtitles className="h-4 w-4" />
+                          Subtitles
+                        </label>
+                        <Select value={selectedSubtitleTrack} onValueChange={setSelectedSubtitleTrack}>
+                          <SelectTrigger className="surface border-gray-600">
+                            <SelectValue placeholder="Select subtitles" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="off">Off</SelectItem>
+                            {subtitleTracks.map((track, index) => (
+                              <SelectItem key={index} value={track.id || index.toString()}>
+                                {track.label || track.language || `Subtitle ${index + 1}`}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  </PopoverContent>
+                </Popover>
+
                 {/* Sync Status Indicator */}
                 <div className="flex items-center space-x-2 text-sm">
                   <div className="w-2 h-2 bg-success rounded-full"></div>
