@@ -238,6 +238,7 @@ export default function StreamPage() {
         syncStatus={isConnected ? 'synced' : 'syncing'}
       />
       
+      {/* Always show video player interface for all viewers */}
       <VideoPlayer
         videoUrl={videoUrl}
         isPlaying={isPlaying}
@@ -261,13 +262,13 @@ export default function StreamPage() {
         isVisible={connectionStatus !== 'connected'}
       />
       
-      {/* Floating Action Button - Available to all viewers */}
+      {/* Add Video Button - Upper Right Corner */}
       <button
         onClick={() => setShowUrlPanel(true)}
-        className="fixed bottom-6 right-6 w-14 h-14 bg-primary hover:bg-blue-600 rounded-full shadow-lg flex items-center justify-center z-30 transition-all duration-200 hover:scale-110"
+        className="fixed top-20 right-6 w-12 h-12 bg-primary hover:bg-blue-600 rounded-full shadow-lg flex items-center justify-center z-30 transition-all duration-200 hover:scale-110"
         title="Load new video"
       >
-        <span className="text-white text-2xl font-light">+</span>
+        <span className="text-white text-xl font-light">+</span>
       </button>
     </div>
   );
