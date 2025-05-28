@@ -208,14 +208,7 @@ export function VideoPlayer({
                 attributes: {
                   crossOrigin: 'anonymous',
                   preload: 'metadata'
-                },
-                tracks: availableSubtitles.map((sub, index) => ({
-                  kind: 'subtitles',
-                  src: sub.src,
-                  srcLang: sub.lang,
-                  label: sub.label,
-                  default: index === selectedSubtitle
-                }))
+                }
               }
             }}
           />
