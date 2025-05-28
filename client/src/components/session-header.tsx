@@ -1,14 +1,13 @@
-import { Play, Users, Settings, Copy, Check } from "lucide-react";
+import { Play, Settings, Copy, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 
 interface SessionHeaderProps {
   sessionId: string;
-  viewerCount: number;
   syncStatus: 'synced' | 'syncing' | 'error';
 }
 
-export function SessionHeader({ sessionId, viewerCount, syncStatus }: SessionHeaderProps) {
+export function SessionHeader({ sessionId, syncStatus }: SessionHeaderProps) {
   const [copied, setCopied] = useState(false);
 
   const handleCopySessionId = async () => {
@@ -79,14 +78,6 @@ export function SessionHeader({ sessionId, viewerCount, syncStatus }: SessionHea
         </div>
         
         <div className="flex items-center space-x-4">
-          {/* Viewer Count */}
-          <div className="flex items-center space-x-2 text-sm">
-            <Users className="h-4 w-4 on-surface-variant" />
-            <span className="on-surface-variant">
-              {viewerCount} viewer{viewerCount !== 1 ? 's' : ''}
-            </span>
-          </div>
-          
           {/* Sync Status */}
           <div className="flex items-center space-x-2">
             <div className={`w-2 h-2 ${getSyncStatusColor()} rounded-full ${syncStatus === 'syncing' ? 'animate-pulse' : ''}`}></div>
