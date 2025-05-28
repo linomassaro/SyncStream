@@ -35,8 +35,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const sessionId = url.searchParams.get('sessionId');
     const viewerId = url.searchParams.get('viewerId');
 
-    console.log(`WebSocket connection attempt: sessionId=${sessionId}, viewerId=${viewerId}`);
-
     if (!sessionId || !viewerId) {
       ws.close(1008, 'Missing sessionId or viewerId');
       return;
@@ -44,8 +42,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     const connectionId = nanoid();
     connections.set(connectionId, { ws, sessionId, viewerId });
-    
-    console.log(`WebSocket connected: ${connectionId}, Total connections: ${connections.size}`);
 
     // Add viewer to session
     storage.addViewer({ sessionId, viewerId }).catch(console.error);
@@ -104,7 +100,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     ws.on('close', async () => {
       connections.delete(connectionId);
-      console.log(`WebSocket disconnected: ${connectionId}, Remaining connections: ${connections.size}`);
       await storage.removeViewer(sessionId, viewerId);
       
       // Notify others about viewer leaving
@@ -151,8 +146,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Count active WebSocket connections for this session
       const activeConnections = Array.from(connections.values())
         .filter(conn => conn.sessionId === req.params.id && conn.ws.readyState === WebSocket.OPEN);
-      
-      console.log(`Session ${req.params.id}: Total connections: ${connections.size}, Active for this session: ${activeConnections.length}`);
       
       res.json({ ...session, viewerCount: activeConnections.length });
     } catch (error) {

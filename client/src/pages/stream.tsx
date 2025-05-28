@@ -34,13 +34,14 @@ export default function StreamPage() {
   const { data: session, isLoading } = useQuery({
     queryKey: ['/api/sessions', sessionId],
     enabled: !!sessionId,
-    refetchInterval: 2000, // Refresh every 2 seconds to get updated viewer count
   });
 
-  // Get viewer count from session data
-  const viewerCount = session && typeof session === 'object' && 'viewerCount' in session 
-    ? (session as any).viewerCount 
-    : 0;
+  // Query viewer count
+  const { data: viewers = [] } = useQuery({
+    queryKey: ['/api/sessions', sessionId, 'viewers'],
+    enabled: !!sessionId,
+    refetchInterval: 5000,
+  });
 
   // Create session mutation
   const createSessionMutation = useMutation({
@@ -233,7 +234,7 @@ export default function StreamPage() {
     <div className="relative w-full h-screen flex flex-col surface overflow-hidden">
       <SessionHeader 
         sessionId={sessionId}
-        viewerCount={viewerCount}
+        viewerCount={Array.isArray(viewers) ? viewers.length : 0}
         syncStatus={isConnected ? 'synced' : 'syncing'}
       />
       
