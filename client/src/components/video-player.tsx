@@ -91,10 +91,11 @@ export function VideoPlayer({
   };
 
   const formatTime = (seconds: number) => {
-    if (isNaN(seconds)) return "0:00";
-    const mins = Math.floor(seconds / 60);
+    if (isNaN(seconds)) return "0:00:00";
+    const hours = Math.floor(seconds / 3600);
+    const mins = Math.floor((seconds % 3600) / 60);
     const secs = Math.floor(seconds % 60);
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
+    return `${hours}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
   return (
@@ -166,7 +167,7 @@ export function VideoPlayer({
             
             {/* Progress Bar */}
             <div className="flex items-center space-x-3">
-              <span className="text-xs on-surface-variant w-12 text-right">
+              <span className="text-xs on-surface-variant w-16 text-right">
                 {formatTime(currentTime)}
               </span>
               <div 
@@ -182,7 +183,7 @@ export function VideoPlayer({
                   </div>
                 </div>
               </div>
-              <span className="text-xs on-surface-variant w-12">
+              <span className="text-xs on-surface-variant w-16">
                 {formatTime(duration)}
               </span>
             </div>

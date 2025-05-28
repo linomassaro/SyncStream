@@ -44,7 +44,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     connections.set(connectionId, { ws, sessionId, viewerId });
 
     // Add viewer to session
-    storage.addViewer({ sessionId, viewerId });
+    storage.addViewer({ sessionId, viewerId }).catch(console.error);
 
     // Notify others about new viewer
     broadcastToSession(sessionId, {
@@ -143,8 +143,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: 'Session not found' });
       }
       
-      const viewers = await storage.getSessionViewers(req.params.id);
-      res.json({ ...session, viewerCount: viewers.length });
+      // Count active WebSocket connections for this session
+      const activeConnections = Array.from(connections.values())
+        .filter(conn => conn.sessionId === req.params.id && conn.ws.readyState === WebSocket.OPEN);
+      
+      res.json({ ...session, viewerCount: activeConnections.length });
     } catch (error) {
       res.status(500).json({ message: 'Server error' });
     }
@@ -167,8 +170,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get session viewers
   app.get('/api/sessions/:id/viewers', async (req, res) => {
     try {
-      const viewers = await storage.getSessionViewers(req.params.id);
-      res.json(viewers);
+      // Count active WebSocket connections for this session
+      const activeConnections = Array.from(connections.values())
+        .filter(conn => conn.sessionId === req.params.id && conn.ws.readyState === WebSocket.OPEN);
+      
+      res.json(activeConnections.map(conn => ({ viewerId: conn.viewerId })));
     } catch (error) {
       res.status(500).json({ message: 'Server error' });
     }
