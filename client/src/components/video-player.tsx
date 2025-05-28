@@ -86,6 +86,10 @@ export function VideoPlayer({
     }
   };
 
+  const handleDoubleClick = () => {
+    toggleFullscreen();
+  };
+
   const formatTime = (seconds: number) => {
     if (isNaN(seconds)) return "0:00";
     const mins = Math.floor(seconds / 60);
@@ -98,6 +102,7 @@ export function VideoPlayer({
       ref={containerRef}
       className="relative flex-1 bg-black group"
       onMouseMove={handleMouseMove}
+      onDoubleClick={handleDoubleClick}
     >
       {/* Video Player */}
       <div className="w-full h-full">

@@ -106,10 +106,11 @@ export default function StreamPage() {
 
   // Initialize session data
   useEffect(() => {
-    if (session) {
-      setVideoUrl(session.videoUrl || '');
-      setIsPlaying(session.isPlaying || false);
-      setCurrentTime(session.currentTime || 0);
+    if (session && typeof session === 'object') {
+      const sessionData = session as any;
+      setVideoUrl(sessionData.videoUrl || '');
+      setIsPlaying(sessionData.isPlaying || false);
+      setCurrentTime(sessionData.currentTime || 0);
     }
   }, [session]);
 
@@ -233,7 +234,7 @@ export default function StreamPage() {
     <div className="relative w-full h-screen flex flex-col surface overflow-hidden">
       <SessionHeader 
         sessionId={sessionId}
-        viewerCount={viewers.length}
+        viewerCount={Array.isArray(viewers) ? viewers.length : 0}
         syncStatus={isConnected ? 'synced' : 'syncing'}
       />
       
@@ -260,12 +261,13 @@ export default function StreamPage() {
         isVisible={connectionStatus !== 'connected'}
       />
       
-      {/* Floating Action Button */}
+      {/* Floating Action Button - Available to all viewers */}
       <button
         onClick={() => setShowUrlPanel(true)}
         className="fixed bottom-6 right-6 w-14 h-14 bg-primary hover:bg-blue-600 rounded-full shadow-lg flex items-center justify-center z-30 transition-all duration-200 hover:scale-110"
+        title="Load new video"
       >
-        <i className="fas fa-plus text-white text-xl"></i>
+        <span className="text-white text-2xl font-light">+</span>
       </button>
     </div>
   );
