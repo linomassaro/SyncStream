@@ -234,7 +234,6 @@ export default function StreamPage() {
     <div className="relative w-full h-screen flex flex-col surface overflow-hidden">
       <SessionHeader 
         sessionId={sessionId}
-        viewerCount={Array.isArray(viewers) ? viewers.length : 0}
         syncStatus={isConnected ? 'synced' : 'syncing'}
       />
       
