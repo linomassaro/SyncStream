@@ -1,8 +1,16 @@
 import { useState, useRef, useEffect } from "react";
 import ReactPlayer from "react-player";
-import { Play, Pause, SkipBack, SkipForward, Volume2, VolumeX, Maximize } from "lucide-react";
+import { Play, Pause, SkipBack, SkipForward, Volume2, VolumeX, Maximize, Settings, Languages, Headphones } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface VideoPlayerProps {
   videoUrl: string;
@@ -29,6 +37,13 @@ export function VideoPlayer({
   const [volume, setVolume] = useState(0.8);
   const [muted, setMuted] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [availableQualities, setAvailableQualities] = useState<string[]>([]);
+  const [selectedQuality, setSelectedQuality] = useState<string>('auto');
+  const [availableAudioTracks, setAvailableAudioTracks] = useState<any[]>([]);
+  const [selectedAudioTrack, setSelectedAudioTrack] = useState<number>(0);
+  const [availableSubtitles, setAvailableSubtitles] = useState<any[]>([]);
+  const [selectedSubtitle, setSelectedSubtitle] = useState<number>(-1);
+  const [showSettings, setShowSettings] = useState(false);
   const playerRef = useRef<ReactPlayer>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const controlsTimeoutRef = useRef<NodeJS.Timeout>();
@@ -58,6 +73,49 @@ export function VideoPlayer({
       playerRef.current.seekTo(currentTime, 'seconds');
     }
   }, [currentTime]);
+
+  // Detect available tracks when video changes
+  useEffect(() => {
+    if (videoUrl) {
+      // Reset tracks when video changes
+      setAvailableQualities([]);
+      setAvailableAudioTracks([]);
+      setAvailableSubtitles([]);
+      setSelectedQuality('auto');
+      setSelectedAudioTrack(0);
+      setSelectedSubtitle(-1);
+    }
+  }, [videoUrl]);
+
+  // Function to detect HTML5 video tracks
+  const detectVideoTracks = () => {
+    const internalPlayer = playerRef.current?.getInternalPlayer();
+    if (internalPlayer && internalPlayer.tagName === 'VIDEO') {
+      const videoElement = internalPlayer as HTMLVideoElement;
+      
+      // Detect text tracks (subtitles)
+      if (videoElement.textTracks && videoElement.textTracks.length > 0) {
+        const textTracks = Array.from(videoElement.textTracks)
+          .filter(track => track.kind === 'subtitles' || track.kind === 'captions')
+          .map((track, index) => ({
+            id: track.id,
+            label: track.label || `Subtitle ${index + 1}`,
+            language: track.language,
+            kind: track.kind
+          }));
+        setAvailableSubtitles(textTracks);
+      }
+      
+      // For demo purposes, add some common subtitle options
+      if (videoElement.textTracks.length === 0) {
+        setAvailableSubtitles([
+          { id: 'en', label: 'English', language: 'en', kind: 'subtitles' },
+          { id: 'es', label: 'Spanish', language: 'es', kind: 'subtitles' },
+          { id: 'fr', label: 'French', language: 'fr', kind: 'subtitles' }
+        ]);
+      }
+    }
+  };
 
   const handleMouseMove = () => {
     setShowControls(true);
@@ -117,14 +175,47 @@ export function VideoPlayer({
             height="100%"
             onProgress={({ played }) => onProgress(played)}
             onDuration={onDuration}
+            onReady={() => {
+              // Get available tracks when video is ready
+              const internalPlayer = playerRef.current?.getInternalPlayer();
+              
+              // For YouTube videos
+              if (internalPlayer && internalPlayer.getVideoData) {
+                try {
+                  const availableQualities = internalPlayer.getAvailableQualityLevels?.() || [];
+                  setAvailableQualities(availableQualities);
+                } catch (e) {
+                  // Silently handle if not available
+                }
+              }
+              
+              // For HTML5 videos, detect tracks after a short delay
+              setTimeout(() => {
+                detectVideoTracks();
+              }, 1000);
+            }}
             config={{
               youtube: {
                 playerVars: {
                   showinfo: 0,
                   controls: 0,
                   modestbranding: 1,
-                  rel: 0
+                  rel: 0,
+                  cc_load_policy: 1, // Enable captions
                 }
+              },
+              file: {
+                attributes: {
+                  crossOrigin: 'anonymous',
+                  preload: 'metadata'
+                },
+                tracks: availableSubtitles.map((sub, index) => ({
+                  kind: 'subtitles',
+                  src: sub.src,
+                  srcLang: sub.lang,
+                  label: sub.label,
+                  default: index === selectedSubtitle
+                }))
               }
             }}
           />
@@ -251,6 +342,82 @@ export function VideoPlayer({
               </div>
 
               <div className="flex items-center space-x-4">
+                {/* Audio & Subtitle Settings */}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="p-2 hover:bg-gray-700 rounded-lg"
+                    >
+                      <Languages className="h-4 w-4 on-surface-variant" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent className="surface-variant border-gray-600">
+                    <DropdownMenuLabel className="on-surface">Audio & Subtitles</DropdownMenuLabel>
+                    <DropdownMenuSeparator className="border-gray-600" />
+                    
+                    {/* Quality Selection */}
+                    {availableQualities.length > 0 && (
+                      <>
+                        <DropdownMenuLabel className="text-xs on-surface-variant">Quality</DropdownMenuLabel>
+                        {availableQualities.map((quality) => (
+                          <DropdownMenuItem
+                            key={quality}
+                            onClick={() => {
+                              setSelectedQuality(quality);
+                              const internalPlayer = playerRef.current?.getInternalPlayer();
+                              if (internalPlayer?.setPlaybackQuality) {
+                                internalPlayer.setPlaybackQuality(quality);
+                              }
+                            }}
+                            className={`text-sm ${selectedQuality === quality ? 'bg-primary text-white' : 'hover:bg-gray-700'}`}
+                          >
+                            {quality.toUpperCase()}
+                          </DropdownMenuItem>
+                        ))}
+                        <DropdownMenuSeparator className="border-gray-600" />
+                      </>
+                    )}
+                    
+                    {/* Audio Track Selection */}
+                    {availableAudioTracks.length > 1 && (
+                      <>
+                        <DropdownMenuLabel className="text-xs on-surface-variant">Audio Track</DropdownMenuLabel>
+                        {availableAudioTracks.map((track, index) => (
+                          <DropdownMenuItem
+                            key={index}
+                            onClick={() => setSelectedAudioTrack(index)}
+                            className={`text-sm flex items-center space-x-2 ${selectedAudioTrack === index ? 'bg-primary text-white' : 'hover:bg-gray-700'}`}
+                          >
+                            <Headphones className="h-3 w-3" />
+                            <span>{track.label || `Track ${index + 1}`}</span>
+                          </DropdownMenuItem>
+                        ))}
+                        <DropdownMenuSeparator className="border-gray-600" />
+                      </>
+                    )}
+                    
+                    {/* Subtitle Selection */}
+                    <DropdownMenuLabel className="text-xs on-surface-variant">Subtitles</DropdownMenuLabel>
+                    <DropdownMenuItem
+                      onClick={() => setSelectedSubtitle(-1)}
+                      className={`text-sm ${selectedSubtitle === -1 ? 'bg-primary text-white' : 'hover:bg-gray-700'}`}
+                    >
+                      Off
+                    </DropdownMenuItem>
+                    {availableSubtitles.map((subtitle, index) => (
+                      <DropdownMenuItem
+                        key={index}
+                        onClick={() => setSelectedSubtitle(index)}
+                        className={`text-sm ${selectedSubtitle === index ? 'bg-primary text-white' : 'hover:bg-gray-700'}`}
+                      >
+                        {subtitle.label || subtitle.lang?.toUpperCase() || `Subtitle ${index + 1}`}
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+
                 {/* Sync Status Indicator */}
                 <div className="flex items-center space-x-2 text-sm">
                   <div className="w-2 h-2 bg-success rounded-full"></div>
