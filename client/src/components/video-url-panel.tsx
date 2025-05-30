@@ -2,7 +2,7 @@ import { useState } from "react";
 import { X, Play, Youtube, Link } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { isValidVideoUrl, getVideoType, normalizeVideoUrl } from "@/lib/video-utils";
+import { isValidVideoUrl, getVideoType } from "@/lib/video-utils";
 
 interface VideoUrlPanelProps {
   onVideoLoad: (url: string) => void;
@@ -29,8 +29,7 @@ export function VideoUrlPanel({ onVideoLoad, onClose }: VideoUrlPanelProps) {
     setError("");
 
     try {
-      const normalizedUrl = normalizeVideoUrl(url);
-      onVideoLoad(normalizedUrl);
+      onVideoLoad(url.trim());
     } catch (error) {
       setError("Failed to load video. Please check the URL and try again.");
     } finally {
