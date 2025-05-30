@@ -96,14 +96,52 @@ export function VideoPlayer({
         }
       }
       
-      // For HTML5 video element
-      if (player && player.textTracks) {
-        const tracks = Array.from(player.textTracks).map((track: any, index: number) => ({
-          id: index.toString(),
-          label: track.label || track.language || `Track ${index + 1}`,
-          language: track.language
-        }));
-        setSubtitleTracks(tracks);
+      // For HTML5 video element (direct video files)
+      if (player && player.tagName === 'VIDEO') {
+        // Check for audio tracks
+        if (player.audioTracks && player.audioTracks.length > 1) {
+          const audioTracks = Array.from(player.audioTracks).map((track: any, index: number) => ({
+            id: index.toString(),
+            label: track.label || track.language || `Audio ${index + 1}`,
+            language: track.language,
+            enabled: track.enabled
+          }));
+          setAudioTracks(audioTracks);
+        }
+        
+        // Check for subtitle tracks
+        if (player.textTracks && player.textTracks.length > 0) {
+          const tracks = Array.from(player.textTracks).map((track: any, index: number) => ({
+            id: index.toString(),
+            label: track.label || track.language || `Subtitle ${index + 1}`,
+            language: track.language,
+            kind: track.kind
+          }));
+          setSubtitleTracks(tracks);
+        }
+        
+        // For .mkv files, try to detect embedded tracks
+        setTimeout(() => {
+          if (player.audioTracks && player.audioTracks.length > 1) {
+            const audioTracks = Array.from(player.audioTracks).map((track: any, index: number) => ({
+              id: index.toString(),
+              label: track.label || track.language || `Audio ${index + 1}`,
+              language: track.language,
+              enabled: track.enabled
+            }));
+            setAudioTracks(audioTracks);
+          }
+          
+          if (player.textTracks && player.textTracks.length > 0) {
+            const tracks = Array.from(player.textTracks).map((track: any, index: number) => ({
+              id: index.toString(),
+              label: track.label || track.language || `Subtitle ${index + 1}`,
+              language: track.language,
+              kind: track.kind
+            }));
+            setSubtitleTracks(tracks);
+          }
+        }, 1000);
       }
     }
   };
@@ -112,8 +150,18 @@ export function VideoPlayer({
     setSelectedAudioTrack(trackId);
     if (playerRef.current) {
       const player = playerRef.current.getInternalPlayer();
+      
+      // For YouTube videos
       if (player && typeof player.setAudioTrack === 'function') {
         player.setAudioTrack(trackId);
+      }
+      
+      // For HTML5 video element (direct files)
+      if (player && player.tagName === 'VIDEO' && player.audioTracks) {
+        const trackIndex = parseInt(trackId);
+        Array.from(player.audioTracks).forEach((track: any, index: number) => {
+          track.enabled = index === trackIndex;
+        });
       }
     }
   };
