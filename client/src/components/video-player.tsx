@@ -1,8 +1,16 @@
 import { useState, useRef, useEffect } from "react";
 import ReactPlayer from "react-player";
-import { Play, Pause, SkipBack, SkipForward, Volume2, VolumeX, Maximize } from "lucide-react";
+import { Play, Pause, SkipBack, SkipForward, Volume2, VolumeX, Maximize, Settings, Languages, Subtitles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface VideoPlayerProps {
   videoUrl: string;
@@ -29,6 +37,10 @@ export function VideoPlayer({
   const [volume, setVolume] = useState(0.8);
   const [muted, setMuted] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [audioTracks, setAudioTracks] = useState<any[]>([]);
+  const [subtitleTracks, setSubtitleTracks] = useState<any[]>([]);
+  const [selectedAudioTrack, setSelectedAudioTrack] = useState<string>('');
+  const [selectedSubtitleTrack, setSelectedSubtitleTrack] = useState<string>('off');
   const playerRef = useRef<ReactPlayer>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const controlsTimeoutRef = useRef<NodeJS.Timeout>();
@@ -58,6 +70,81 @@ export function VideoPlayer({
       playerRef.current.seekTo(currentTime, 'seconds');
     }
   }, [currentTime]);
+
+  // Handle video ready event to get available tracks
+  const handleReady = () => {
+    if (playerRef.current) {
+      const player = playerRef.current.getInternalPlayer();
+      
+      // For YouTube videos
+      if (player && typeof player.getAvailableAudioTracks === 'function') {
+        try {
+          const audioTracks = player.getAvailableAudioTracks() || [];
+          setAudioTracks(audioTracks);
+        } catch (error) {
+          console.log('Audio tracks not available');
+        }
+      }
+      
+      // For videos with subtitle tracks
+      if (player && typeof player.getOption === 'function') {
+        try {
+          const captions = player.getOption('captions', 'tracklist') || [];
+          setSubtitleTracks(captions);
+        } catch (error) {
+          console.log('Subtitle tracks not available');
+        }
+      }
+      
+      // For HTML5 video element
+      if (player && player.textTracks) {
+        const tracks = Array.from(player.textTracks).map((track: any, index: number) => ({
+          id: index.toString(),
+          label: track.label || track.language || `Track ${index + 1}`,
+          language: track.language
+        }));
+        setSubtitleTracks(tracks);
+      }
+    }
+  };
+
+  const handleAudioTrackChange = (trackId: string) => {
+    setSelectedAudioTrack(trackId);
+    if (playerRef.current) {
+      const player = playerRef.current.getInternalPlayer();
+      if (player && typeof player.setAudioTrack === 'function') {
+        player.setAudioTrack(trackId);
+      }
+    }
+  };
+
+  const handleSubtitleTrackChange = (trackId: string) => {
+    setSelectedSubtitleTrack(trackId);
+    if (playerRef.current) {
+      const player = playerRef.current.getInternalPlayer();
+      
+      // For YouTube videos
+      if (player && typeof player.setOption === 'function') {
+        if (trackId === 'off') {
+          player.setOption('captions', 'reload', true);
+          player.setOption('captions', 'displaySettings', {});
+        } else {
+          player.setOption('captions', 'track', { languageCode: trackId });
+        }
+      }
+      
+      // For HTML5 video element
+      if (player && player.textTracks) {
+        Array.from(player.textTracks).forEach((track: any, index: number) => {
+          if (index.toString() === trackId) {
+            track.mode = 'showing';
+          } else {
+            track.mode = 'hidden';
+          }
+        });
+      }
+    }
+  };
 
   const handleMouseMove = () => {
     setShowControls(true);
@@ -117,14 +204,28 @@ export function VideoPlayer({
             height="100%"
             onProgress={({ played }) => onProgress(played)}
             onDuration={onDuration}
+            onReady={handleReady}
             config={{
               youtube: {
                 playerVars: {
                   showinfo: 0,
                   controls: 0,
                   modestbranding: 1,
-                  rel: 0
+                  rel: 0,
+                  cc_load_policy: 1 // Enable captions
                 }
+              },
+              file: {
+                attributes: {
+                  crossOrigin: 'anonymous'
+                },
+                tracks: subtitleTracks.map((track, index) => ({
+                  kind: 'subtitles',
+                  src: track.src,
+                  srcLang: track.language || 'en',
+                  label: track.label || `Track ${index + 1}`,
+                  default: selectedSubtitleTrack === track.id
+                }))
               }
             }}
           />
@@ -251,6 +352,74 @@ export function VideoPlayer({
               </div>
 
               <div className="flex items-center space-x-4">
+                {/* Audio Track Selection */}
+                {audioTracks.length > 0 && (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="p-2 hover:bg-gray-700 rounded-lg"
+                        title="Audio tracks"
+                      >
+                        <Languages className="h-4 w-4 on-surface-variant" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent className="surface-variant border-gray-600">
+                      <DropdownMenuLabel className="on-surface">Audio Tracks</DropdownMenuLabel>
+                      <DropdownMenuSeparator className="bg-gray-600" />
+                      {audioTracks.map((track, index) => (
+                        <DropdownMenuItem
+                          key={track.id || index}
+                          onClick={() => handleAudioTrackChange(track.id || index.toString())}
+                          className={`on-surface hover:bg-gray-700 ${
+                            selectedAudioTrack === (track.id || index.toString()) ? 'bg-gray-700' : ''
+                          }`}
+                        >
+                          {track.label || track.language || `Track ${index + 1}`}
+                        </DropdownMenuItem>
+                      ))}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                )}
+
+                {/* Subtitle Track Selection */}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="p-2 hover:bg-gray-700 rounded-lg"
+                      title="Subtitles"
+                    >
+                      <Subtitles className="h-4 w-4 on-surface-variant" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent className="surface-variant border-gray-600">
+                    <DropdownMenuLabel className="on-surface">Subtitles</DropdownMenuLabel>
+                    <DropdownMenuSeparator className="bg-gray-600" />
+                    <DropdownMenuItem
+                      onClick={() => handleSubtitleTrackChange('off')}
+                      className={`on-surface hover:bg-gray-700 ${
+                        selectedSubtitleTrack === 'off' ? 'bg-gray-700' : ''
+                      }`}
+                    >
+                      Off
+                    </DropdownMenuItem>
+                    {subtitleTracks.map((track, index) => (
+                      <DropdownMenuItem
+                        key={track.id || index}
+                        onClick={() => handleSubtitleTrackChange(track.id || index.toString())}
+                        className={`on-surface hover:bg-gray-700 ${
+                          selectedSubtitleTrack === (track.id || index.toString()) ? 'bg-gray-700' : ''
+                        }`}
+                      >
+                        {track.label || track.language || `Track ${index + 1}`}
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+
                 {/* Sync Status Indicator */}
                 <div className="flex items-center space-x-2 text-sm">
                   <div className="w-2 h-2 bg-success rounded-full"></div>
