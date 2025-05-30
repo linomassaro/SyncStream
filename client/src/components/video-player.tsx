@@ -1,8 +1,16 @@
 import { useState, useRef, useEffect } from "react";
 import ReactPlayer from "react-player";
-import { Play, Pause, SkipBack, SkipForward, Volume2, VolumeX, Maximize } from "lucide-react";
+import { Play, Pause, SkipBack, SkipForward, Volume2, VolumeX, Maximize, Settings, Languages } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface VideoPlayerProps {
   videoUrl: string;
@@ -29,9 +37,13 @@ export function VideoPlayer({
   const [volume, setVolume] = useState(0.8);
   const [muted, setMuted] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [playbackRate, setPlaybackRate] = useState(1);
+  const [availableQualities, setAvailableQualities] = useState<string[]>([]);
+  const [selectedQuality, setSelectedQuality] = useState<string>('auto');
   const playerRef = useRef<ReactPlayer>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const controlsTimeoutRef = useRef<NodeJS.Timeout>();
+  const videoRef = useRef<HTMLVideoElement>(null);
 
   // Auto-hide controls
   useEffect(() => {
@@ -98,6 +110,66 @@ export function VideoPlayer({
     return `${hours}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
+  // Get video element for track access
+  const getVideoElement = () => {
+    if (playerRef.current) {
+      const player = playerRef.current.getInternalPlayer();
+      if (player && player.tagName === 'VIDEO') {
+        return player as HTMLVideoElement;
+      }
+    }
+    return null;
+  };
+
+  // Get available audio tracks
+  const getAudioTracks = () => {
+    const video = getVideoElement();
+    if (video && video.audioTracks) {
+      return Array.from(video.audioTracks).map((track, index) => ({
+        id: index,
+        label: track.label || `Audio Track ${index + 1}`,
+        language: track.language || 'unknown',
+        enabled: track.enabled
+      }));
+    }
+    return [];
+  };
+
+  // Get available text tracks (subtitles)
+  const getTextTracks = () => {
+    const video = getVideoElement();
+    if (video && video.textTracks) {
+      return Array.from(video.textTracks).map((track, index) => ({
+        id: index,
+        label: track.label || `Subtitle ${index + 1}`,
+        language: track.language || 'unknown',
+        kind: track.kind,
+        mode: track.mode
+      }));
+    }
+    return [];
+  };
+
+  // Set audio track
+  const setAudioTrack = (trackId: number) => {
+    const video = getVideoElement();
+    if (video && video.audioTracks) {
+      Array.from(video.audioTracks).forEach((track, index) => {
+        track.enabled = index === trackId;
+      });
+    }
+  };
+
+  // Set subtitle track
+  const setSubtitleTrack = (trackId: number | null) => {
+    const video = getVideoElement();
+    if (video && video.textTracks) {
+      Array.from(video.textTracks).forEach((track, index) => {
+        track.mode = index === trackId ? 'showing' : 'hidden';
+      });
+    }
+  };
+
   return (
     <div 
       ref={containerRef}
@@ -113,6 +185,7 @@ export function VideoPlayer({
             url={videoUrl}
             playing={isPlaying}
             volume={muted ? 0 : volume}
+            playbackRate={playbackRate}
             width="100%"
             height="100%"
             onProgress={({ played }) => onProgress(played)}
@@ -124,6 +197,12 @@ export function VideoPlayer({
                   controls: 0,
                   modestbranding: 1,
                   rel: 0
+                }
+              },
+              file: {
+                attributes: {
+                  crossOrigin: 'anonymous',
+                  preload: 'metadata'
                 }
               }
             }}
@@ -251,6 +330,93 @@ export function VideoPlayer({
               </div>
 
               <div className="flex items-center space-x-4">
+                {/* Playback Speed */}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="p-2 hover:bg-gray-700 rounded-lg text-xs"
+                    >
+                      {playbackRate}x
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent className="surface-variant border-gray-600">
+                    <DropdownMenuLabel className="on-surface">Playback Speed</DropdownMenuLabel>
+                    <DropdownMenuSeparator className="bg-gray-600" />
+                    {[0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2].map((rate) => (
+                      <DropdownMenuItem
+                        key={rate}
+                        onClick={() => setPlaybackRate(rate)}
+                        className="on-surface hover:bg-gray-700"
+                      >
+                        {rate}x {rate === 1 && '(Normal)'}
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+
+                {/* Audio/Subtitle Settings */}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="p-2 hover:bg-gray-700 rounded-lg"
+                    >
+                      <Languages className="h-4 w-4 on-surface-variant" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent className="surface-variant border-gray-600 w-56">
+                    <DropdownMenuLabel className="on-surface">Audio & Subtitles</DropdownMenuLabel>
+                    <DropdownMenuSeparator className="bg-gray-600" />
+                    
+                    {/* Audio Tracks */}
+                    <DropdownMenuLabel className="on-surface-variant text-xs">Audio Track</DropdownMenuLabel>
+                    {getAudioTracks().length > 0 ? (
+                      getAudioTracks().map((track) => (
+                        <DropdownMenuItem
+                          key={track.id}
+                          onClick={() => setAudioTrack(track.id)}
+                          className={`on-surface hover:bg-gray-700 ${track.enabled ? 'bg-gray-700' : ''}`}
+                        >
+                          {track.label} {track.language && `(${track.language})`}
+                        </DropdownMenuItem>
+                      ))
+                    ) : (
+                      <DropdownMenuItem className="on-surface-variant text-xs" disabled>
+                        No audio tracks available
+                      </DropdownMenuItem>
+                    )}
+                    
+                    <DropdownMenuSeparator className="bg-gray-600" />
+                    
+                    {/* Subtitle Tracks */}
+                    <DropdownMenuLabel className="on-surface-variant text-xs">Subtitles</DropdownMenuLabel>
+                    <DropdownMenuItem
+                      onClick={() => setSubtitleTrack(null)}
+                      className="on-surface hover:bg-gray-700"
+                    >
+                      Off
+                    </DropdownMenuItem>
+                    {getTextTracks().length > 0 ? (
+                      getTextTracks().map((track) => (
+                        <DropdownMenuItem
+                          key={track.id}
+                          onClick={() => setSubtitleTrack(track.id)}
+                          className={`on-surface hover:bg-gray-700 ${track.mode === 'showing' ? 'bg-gray-700' : ''}`}
+                        >
+                          {track.label} {track.language && `(${track.language})`}
+                        </DropdownMenuItem>
+                      ))
+                    ) : (
+                      <DropdownMenuItem className="on-surface-variant text-xs" disabled>
+                        No subtitles available
+                      </DropdownMenuItem>
+                    )}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+
                 {/* Sync Status Indicator */}
                 <div className="flex items-center space-x-2 text-sm">
                   <div className="w-2 h-2 bg-success rounded-full"></div>
