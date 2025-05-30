@@ -1,8 +1,14 @@
 import { useState, useRef, useEffect } from "react";
 import ReactPlayer from "react-player";
-import { Play, Pause, SkipBack, SkipForward, Volume2, VolumeX, Maximize } from "lucide-react";
+import { Play, Pause, SkipBack, SkipForward, Volume2, VolumeX, Maximize, Languages, Captions } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface VideoPlayerProps {
   videoUrl: string;
@@ -29,9 +35,25 @@ export function VideoPlayer({
   const [volume, setVolume] = useState(0.8);
   const [muted, setMuted] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [subtitlesEnabled, setSubtitlesEnabled] = useState(false);
+  const [selectedLanguage, setSelectedLanguage] = useState('en');
   const playerRef = useRef<ReactPlayer>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const controlsTimeoutRef = useRef<NodeJS.Timeout>();
+
+  // Available subtitle languages
+  const availableLanguages = [
+    { code: 'en', name: 'English' },
+    { code: 'es', name: 'Spanish' },
+    { code: 'fr', name: 'French' },
+    { code: 'de', name: 'German' },
+    { code: 'it', name: 'Italian' },
+    { code: 'pt', name: 'Portuguese' },
+    { code: 'ru', name: 'Russian' },
+    { code: 'ja', name: 'Japanese' },
+    { code: 'ko', name: 'Korean' },
+    { code: 'zh', name: 'Chinese' },
+  ];
 
   // Auto-hide controls
   useEffect(() => {
@@ -123,8 +145,23 @@ export function VideoPlayer({
                   showinfo: 0,
                   controls: 0,
                   modestbranding: 1,
-                  rel: 0
+                  rel: 0,
+                  cc_load_policy: subtitlesEnabled ? 1 : 0,
+                  hl: selectedLanguage,
+                  cc_lang_pref: selectedLanguage
                 }
+              },
+              file: {
+                attributes: {
+                  crossOrigin: 'anonymous'
+                },
+                tracks: subtitlesEnabled ? [{
+                  kind: 'subtitles',
+                  src: '', // This would need to be provided by the user or detected
+                  srcLang: selectedLanguage,
+                  label: availableLanguages.find(lang => lang.code === selectedLanguage)?.name || 'Subtitles',
+                  default: true
+                }] : []
               }
             }}
           />
@@ -251,6 +288,40 @@ export function VideoPlayer({
               </div>
 
               <div className="flex items-center space-x-4">
+                {/* Language Selection */}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="p-2 hover:bg-gray-700 rounded-lg"
+                    >
+                      <Languages className="h-4 w-4 on-surface-variant" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent className="surface-variant border-gray-600">
+                    {availableLanguages.map((lang) => (
+                      <DropdownMenuItem
+                        key={lang.code}
+                        onClick={() => setSelectedLanguage(lang.code)}
+                        className={`hover:bg-gray-700 ${selectedLanguage === lang.code ? 'bg-gray-700' : ''}`}
+                      >
+                        <span className="on-surface">{lang.name}</span>
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+
+                {/* Subtitles Toggle */}
+                <Button
+                  onClick={() => setSubtitlesEnabled(!subtitlesEnabled)}
+                  variant="ghost"
+                  size="sm"
+                  className={`p-2 hover:bg-gray-700 rounded-lg ${subtitlesEnabled ? 'bg-gray-700' : ''}`}
+                >
+                  <Captions className={`h-4 w-4 ${subtitlesEnabled ? 'text-primary' : 'on-surface-variant'}`} />
+                </Button>
+
                 {/* Sync Status Indicator */}
                 <div className="flex items-center space-x-2 text-sm">
                   <div className="w-2 h-2 bg-success rounded-full"></div>
