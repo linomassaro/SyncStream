@@ -93,7 +93,31 @@ export function extractVideoId(url: string): string | null {
 }
 
 export function normalizeVideoUrl(url: string): string {
-  // For now, just return the original URL
-  // Could add URL normalization logic here if needed
-  return url.trim();
+  const trimmedUrl = url.trim();
+  
+  // Check if it's a direct video file that might need CORS proxy
+  if (isDirectVideoUrl(new URL(trimmedUrl))) {
+    // Check if the domain might have CORS restrictions
+    const urlObj = new URL(trimmedUrl);
+    const restrictedDomains = [
+      'debrid.it',
+      'real-debrid.com',
+      'alldebrid.com',
+      'premiumize.me',
+      'uploaded.net',
+      'rapidgator.net',
+      'nitroflare.com'
+    ];
+    
+    const needsProxy = restrictedDomains.some(domain => 
+      urlObj.hostname.includes(domain)
+    );
+    
+    if (needsProxy) {
+      // Use our proxy endpoint
+      return `/api/proxy/video?url=${encodeURIComponent(trimmedUrl)}`;
+    }
+  }
+  
+  return trimmedUrl;
 }
