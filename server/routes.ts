@@ -206,6 +206,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get video sources for session
+  app.get('/api/sessions/:id/sources', async (req, res) => {
+    try {
+      const sources = await storage.getVideoSources(req.params.id);
+      console.log(`Getting sources for session ${req.params.id}:`, sources);
+      res.json(sources);
+    } catch (error) {
+      console.error('Error getting video sources:', error);
+      res.status(500).json({ message: 'Server error' });
+    }
+  });
+
   // Add video source to session
   app.post('/api/sessions/:id/sources', async (req, res) => {
     try {
@@ -230,18 +242,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const sources = await storage.removeVideoSource(req.params.id, req.params.sourceId);
       res.json(sources);
     } catch (error) {
-      res.status(500).json({ message: 'Server error' });
-    }
-  });
-
-  // Get video sources for session
-  app.get('/api/sessions/:id/sources', async (req, res) => {
-    try {
-      const sources = await storage.getVideoSources(req.params.id);
-      console.log(`Getting sources for session ${req.params.id}:`, sources);
-      res.json(sources);
-    } catch (error) {
-      console.error('Error getting video sources:', error);
       res.status(500).json({ message: 'Server error' });
     }
   });
