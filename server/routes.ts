@@ -206,5 +206,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Add video source to session
+  app.post('/api/sessions/:id/sources', async (req, res) => {
+    try {
+      const { url, title, addedBy } = req.body;
+      const source = {
+        id: nanoid(),
+        url,
+        title: title || 'Untitled Video',
+        addedBy
+      };
+      
+      const sources = await storage.addVideoSource(req.params.id, source);
+      res.json(sources);
+    } catch (error) {
+      res.status(500).json({ message: 'Server error' });
+    }
+  });
+
+  // Remove video source from session
+  app.delete('/api/sessions/:id/sources/:sourceId', async (req, res) => {
+    try {
+      const sources = await storage.removeVideoSource(req.params.id, req.params.sourceId);
+      res.json(sources);
+    } catch (error) {
+      res.status(500).json({ message: 'Server error' });
+    }
+  });
+
+  // Get video sources for session
+  app.get('/api/sessions/:id/sources', async (req, res) => {
+    try {
+      const sources = await storage.getVideoSources(req.params.id);
+      res.json(sources);
+    } catch (error) {
+      res.status(500).json({ message: 'Server error' });
+    }
+  });
+
   return httpServer;
 }
