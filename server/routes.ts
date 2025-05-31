@@ -161,6 +161,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Video sources endpoints - placed early to avoid conflicts
+  app.get('/api/sources/:sessionId', async (req, res) => {
+    try {
+      const sources = await storage.getVideoSources(req.params.sessionId);
+      console.log(`Getting sources for session ${req.params.sessionId}:`, sources);
+      res.json(sources);
+    } catch (error) {
+      console.error('Error getting video sources:', error);
+      res.status(500).json({ message: 'Server error' });
+    }
+  });
+
+  app.post('/api/sources/:sessionId', async (req, res) => {
+    try {
+      const { url, title, addedBy } = req.body;
+      const source = {
+        id: nanoid(),
+        url,
+        title: title || 'Untitled Video',
+        addedBy
+      };
+      
+      const sources = await storage.addVideoSource(req.params.sessionId, source);
+      console.log(`Added source to session ${req.params.sessionId}:`, sources);
+      res.json(sources);
+    } catch (error) {
+      console.error('Error adding video source:', error);
+      res.status(500).json({ message: 'Server error' });
+    }
+  });
+
+  app.delete('/api/sources/:sessionId/:sourceId', async (req, res) => {
+    try {
+      const sources = await storage.removeVideoSource(req.params.sessionId, req.params.sourceId);
+      console.log(`Removed source from session ${req.params.sessionId}:`, sources);
+      res.json(sources);
+    } catch (error) {
+      console.error('Error removing video source:', error);
+      res.status(500).json({ message: 'Server error' });
+    }
+  });
+
   // Get session viewers
   app.get('/api/sessions/:id/viewers', async (req, res) => {
     try {
@@ -170,18 +212,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.json(activeConnections.map(conn => ({ viewerId: conn.viewerId })));
     } catch (error) {
-      res.status(500).json({ message: 'Server error' });
-    }
-  });
-
-  // Get video sources for session
-  app.get('/api/sessions/:id/sources', async (req, res) => {
-    try {
-      const sources = await storage.getVideoSources(req.params.id);
-      console.log(`Getting sources for session ${req.params.id}:`, sources);
-      res.json(sources);
-    } catch (error) {
-      console.error('Error getting video sources:', error);
       res.status(500).json({ message: 'Server error' });
     }
   });
@@ -218,33 +248,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Add video source to session
-  app.post('/api/sessions/:id/sources', async (req, res) => {
-    try {
-      const { url, title, addedBy } = req.body;
-      const source = {
-        id: nanoid(),
-        url,
-        title: title || 'Untitled Video',
-        addedBy
-      };
-      
-      const sources = await storage.addVideoSource(req.params.id, source);
-      res.json(sources);
-    } catch (error) {
-      res.status(500).json({ message: 'Server error' });
-    }
-  });
 
-  // Remove video source from session
-  app.delete('/api/sessions/:id/sources/:sourceId', async (req, res) => {
-    try {
-      const sources = await storage.removeVideoSource(req.params.id, req.params.sourceId);
-      res.json(sources);
-    } catch (error) {
-      res.status(500).json({ message: 'Server error' });
-    }
-  });
 
   return httpServer;
 }

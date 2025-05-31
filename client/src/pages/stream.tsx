@@ -49,7 +49,7 @@ export default function StreamPage() {
 
   // Query video sources
   const { data: sourcesData = [] } = useQuery({
-    queryKey: ['/api/sessions', sessionId, 'sources'],
+    queryKey: ['/api/sources', sessionId],
     enabled: !!sessionId,
   });
 
@@ -113,7 +113,7 @@ export default function StreamPage() {
           setVideoSources(message.data.videoSources);
         }
         // Video sources updated - refresh from API
-        queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId, 'sources'] });
+        queryClient.invalidateQueries({ queryKey: ['/api/sources', sessionId] });
         break;
       case 'viewer-source-change':
         // Other viewers changed their source selection - no action needed
@@ -134,7 +134,7 @@ export default function StreamPage() {
       setCurrentTime(sessionData.currentTime || 0);
       
       // Fetch video sources when session loads
-      queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId, 'sources'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/sources', sessionId] });
     }
   }, [session, sessionId, queryClient]);
 
@@ -163,20 +163,18 @@ export default function StreamPage() {
 
   const handleAddSource = async (url: string, title: string) => {
     try {
-      const response = await apiRequest('POST', `/api/sessions/${sessionId}/sources`, {
+      const response = await apiRequest('POST', `/api/sources/${sessionId}`, {
         url,
         title,
         addedBy: viewerId
       });
       const sources = await response.json();
       
-
-      
       // Update local state immediately
       setVideoSources(sources);
       
       // Invalidate query cache to ensure consistency
-      queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId, 'sources'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/sources', sessionId] });
       
       sendMessage({
         type: 'source-add',
@@ -190,14 +188,14 @@ export default function StreamPage() {
 
   const handleRemoveSource = async (sourceId: string) => {
     try {
-      const response = await apiRequest('DELETE', `/api/sessions/${sessionId}/sources/${sourceId}`);
+      const response = await apiRequest('DELETE', `/api/sources/${sessionId}/${sourceId}`);
       const sources = await response.json();
       
       // Update local state immediately
       setVideoSources(sources);
       
       // Invalidate query cache to ensure consistency
-      queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId, 'sources'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/sources', sessionId] });
       
       sendMessage({
         type: 'source-remove',
