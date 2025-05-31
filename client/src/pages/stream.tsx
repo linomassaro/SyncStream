@@ -21,7 +21,6 @@ export default function StreamPage() {
   const [videoUrl, setVideoUrl] = useState('');
   const [videoSources, setVideoSources] = useState<VideoSource[]>([]);
   const [selectedSourceId, setSelectedSourceId] = useState<string>('');
-  const [sourceDelay, setSourceDelay] = useState(0); // Delay in seconds for current viewer
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -174,16 +173,11 @@ export default function StreamPage() {
     if (source) {
       setSelectedSourceId(sourceId);
       setVideoUrl(source.url);
-      setSourceDelay(0); // Reset delay when changing sources
       
       // Only change the source locally for this viewer
       // Don't broadcast source change to other viewers
       // They keep their own selected sources
     }
-  };
-
-  const handleDelayChange = (delay: number) => {
-    setSourceDelay(delay);
   };
 
   const handlePlayPause = () => {
@@ -294,7 +288,6 @@ export default function StreamPage() {
         videoUrl={videoUrl}
         videoSources={videoSources}
         selectedSourceId={selectedSourceId}
-        sourceDelay={sourceDelay}
         isPlaying={isPlaying}
         currentTime={currentTime}
         duration={duration}
@@ -303,7 +296,6 @@ export default function StreamPage() {
         onProgress={handleProgress}
         onDuration={setDuration}
         onSourceChange={handleSourceChange}
-        onDelayChange={handleDelayChange}
       />
       
       {showUrlPanel && (

@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import ReactPlayer from "react-player";
-import { Play, Pause, SkipBack, SkipForward, Volume2, VolumeX, Maximize, Languages, Film, Clock } from "lucide-react";
+import { Play, Pause, SkipBack, SkipForward, Volume2, VolumeX, Maximize, Languages, Film } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import {
@@ -17,7 +17,6 @@ interface VideoPlayerProps {
   videoUrl: string;
   videoSources?: VideoSource[];
   selectedSourceId?: string;
-  sourceDelay?: number;
   isPlaying: boolean;
   currentTime: number;
   duration: number;
@@ -26,14 +25,12 @@ interface VideoPlayerProps {
   onProgress: (played: number) => void;
   onDuration: (duration: number) => void;
   onSourceChange?: (sourceId: string) => void;
-  onDelayChange?: (delay: number) => void;
 }
 
 export function VideoPlayer({
   videoUrl,
   videoSources = [],
   selectedSourceId,
-  sourceDelay = 0,
   isPlaying,
   currentTime,
   duration,
@@ -41,8 +38,7 @@ export function VideoPlayer({
   onSeek,
   onProgress,
   onDuration,
-  onSourceChange,
-  onDelayChange
+  onSourceChange
 }: VideoPlayerProps) {
   const [showControls, setShowControls] = useState(true);
   const [volume, setVolume] = useState(0.8);
@@ -75,16 +71,12 @@ export function VideoPlayer({
     };
   }, [isPlaying, showControls]);
 
-  // Sync video time with external currentTime, applying source delay
+  // Sync video time with external currentTime
   useEffect(() => {
-    if (playerRef.current) {
-      const adjustedTime = currentTime + sourceDelay;
-      const currentPlayerTime = playerRef.current.getCurrentTime();
-      if (Math.abs(currentPlayerTime - adjustedTime) > 2) {
-        playerRef.current.seekTo(Math.max(0, adjustedTime), 'seconds');
-      }
+    if (playerRef.current && Math.abs(playerRef.current.getCurrentTime() - currentTime) > 2) {
+      playerRef.current.seekTo(currentTime, 'seconds');
     }
-  }, [currentTime, sourceDelay]);
+  }, [currentTime]);
 
   // Handle video ready event to get available tracks
   const handleReady = () => {
@@ -444,78 +436,6 @@ export function VideoPlayer({
                           </div>
                         </DropdownMenuItem>
                       ))}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                )}
-
-                {/* Source Delay Control */}
-                {videoSources.length > 1 && (
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="p-2 hover:bg-gray-700 rounded-lg"
-                        title="Source delay"
-                      >
-                        <Clock className="h-4 w-4 on-surface-variant" />
-                        {sourceDelay !== 0 && (
-                          <span className="ml-1 text-xs">
-                            {sourceDelay > 0 ? '+' : ''}{sourceDelay}s
-                          </span>
-                        )}
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent className="surface-variant border-gray-600 w-80">
-                      <DropdownMenuLabel className="on-surface">Source Delay</DropdownMenuLabel>
-                      <DropdownMenuSeparator className="bg-gray-600" />
-                      <div className="p-4 space-y-4">
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm on-surface">Delay: {sourceDelay}s</span>
-                          <div className="flex space-x-2">
-                            <Button
-                              onClick={() => onDelayChange?.(sourceDelay - 1)}
-                              variant="ghost"
-                              size="sm"
-                              className="h-6 w-6 p-0"
-                            >
-                              -1s
-                            </Button>
-                            <Button
-                              onClick={() => onDelayChange?.(0)}
-                              variant="ghost"
-                              size="sm"
-                              className="h-6 px-2 text-xs"
-                            >
-                              Reset
-                            </Button>
-                            <Button
-                              onClick={() => onDelayChange?.(sourceDelay + 1)}
-                              variant="ghost"
-                              size="sm"
-                              className="h-6 w-6 p-0"
-                            >
-                              +1s
-                            </Button>
-                          </div>
-                        </div>
-                        <Slider
-                          value={[sourceDelay]}
-                          onValueChange={(value) => onDelayChange?.(value[0])}
-                          min={-30}
-                          max={30}
-                          step={0.1}
-                          className="w-full"
-                        />
-                        <div className="flex justify-between text-xs on-surface-variant">
-                          <span>-30s</span>
-                          <span>0s</span>
-                          <span>+30s</span>
-                        </div>
-                        <p className="text-xs on-surface-variant">
-                          Adjust timing offset for this source. Positive values delay the video, negative values advance it.
-                        </p>
-                      </div>
                     </DropdownMenuContent>
                   </DropdownMenu>
                 )}
