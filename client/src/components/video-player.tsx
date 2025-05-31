@@ -429,7 +429,14 @@ export function VideoPlayer({
                           }`}
                         >
                           <div className="flex flex-col">
-                            <span>{source.title}</span>
+                            <div className="flex items-center justify-between w-full">
+                              <span>{source.title}</span>
+                              {source.delay !== undefined && source.delay !== 0 && (
+                                <span className="text-xs on-surface-variant ml-2">
+                                  {source.delay > 0 ? `+${source.delay}s` : `${source.delay}s`}
+                                </span>
+                              )}
+                            </div>
                             {source.language && (
                               <span className="text-xs on-surface-variant">{source.language}</span>
                             )}

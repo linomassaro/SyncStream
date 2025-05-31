@@ -81,7 +81,8 @@ export function VideoUrlPanel({ onVideoLoad, onClose }: VideoUrlPanelProps) {
       id: nanoid(),
       url: url.trim(),
       title: `Source ${videoSources.length + 1}`,
-      language: ""
+      language: "",
+      delay: 0
     };
 
     setVideoSources([...videoSources, newSource]);
@@ -93,7 +94,7 @@ export function VideoUrlPanel({ onVideoLoad, onClose }: VideoUrlPanelProps) {
     setVideoSources(videoSources.filter(source => source.id !== id));
   };
 
-  const updateVideoSource = (id: string, field: keyof VideoSource, value: string) => {
+  const updateVideoSource = (id: string, field: keyof VideoSource, value: string | number) => {
     setVideoSources(videoSources.map(source => 
       source.id === id ? { ...source, [field]: value } : source
     ));
@@ -204,6 +205,21 @@ export function VideoUrlPanel({ onVideoLoad, onClose }: VideoUrlPanelProps) {
                       onChange={(e) => updateVideoSource(source.id, 'language', e.target.value)}
                       className="text-xs surface border-gray-600 on-surface placeholder-gray-400"
                     />
+                    <div className="flex space-x-2">
+                      <div className="flex-1">
+                        <Input
+                          type="number"
+                          step="0.1"
+                          placeholder="Delay (seconds)"
+                          value={source.delay || 0}
+                          onChange={(e) => updateVideoSource(source.id, 'delay', parseFloat(e.target.value) || 0)}
+                          className="text-xs surface border-gray-600 on-surface placeholder-gray-400"
+                        />
+                      </div>
+                      <div className="text-xs on-surface-variant self-center">
+                        {(source.delay || 0) > 0 ? `+${source.delay}s` : (source.delay || 0) < 0 ? `${source.delay}s` : '0s'}
+                      </div>
+                    </div>
                     <div className="text-xs on-surface-variant truncate">
                       {source.url}
                     </div>

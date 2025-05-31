@@ -69,7 +69,9 @@ export default function StreamPage() {
     switch (message.type) {
       case 'sync':
         if (message.data) {
-          setCurrentTime(message.data.currentTime || 0);
+          // Apply delay adjustment to received base time
+          const adjustedTime = getAdjustedTime(message.data.currentTime || 0);
+          setCurrentTime(adjustedTime);
           setIsPlaying(message.data.isPlaying || false);
           if (message.data.videoUrl) {
             setVideoUrl(message.data.videoUrl);
@@ -85,18 +87,24 @@ export default function StreamPage() {
       case 'play':
         setIsPlaying(true);
         if (message.data?.currentTime !== undefined) {
-          setCurrentTime(message.data.currentTime);
+          // Apply delay adjustment to received base time
+          const adjustedTime = getAdjustedTime(message.data.currentTime);
+          setCurrentTime(adjustedTime);
         }
         break;
       case 'pause':
         setIsPlaying(false);
         if (message.data?.currentTime !== undefined) {
-          setCurrentTime(message.data.currentTime);
+          // Apply delay adjustment to received base time
+          const adjustedTime = getAdjustedTime(message.data.currentTime);
+          setCurrentTime(adjustedTime);
         }
         break;
       case 'seek':
         if (message.data?.currentTime !== undefined) {
-          setCurrentTime(message.data.currentTime);
+          // Apply delay adjustment to received base time
+          const adjustedTime = getAdjustedTime(message.data.currentTime);
+          setCurrentTime(adjustedTime);
         }
         break;
       case 'video-change':
@@ -180,23 +188,47 @@ export default function StreamPage() {
     }
   };
 
+  // Get the current source's delay value
+  const getCurrentSourceDelay = () => {
+    const currentSource = videoSources.find(s => s.id === selectedSourceId);
+    return currentSource?.delay || 0;
+  };
+
+  // Calculate adjusted time for this viewer based on source delay
+  const getAdjustedTime = (baseTime: number) => {
+    const delay = getCurrentSourceDelay();
+    return Math.max(0, baseTime + delay);
+  };
+
+  // Calculate base time from adjusted time (for sending to server)
+  const getBaseTimeFromAdjusted = (adjustedTime: number) => {
+    const delay = getCurrentSourceDelay();
+    return adjustedTime - delay;
+  };
+
   const handlePlayPause = () => {
     const newIsPlaying = !isPlaying;
     setIsPlaying(newIsPlaying);
+    
+    // Send base time (without delay) to synchronize with others
+    const baseTime = getBaseTimeFromAdjusted(currentTime);
     
     sendMessage({
       type: newIsPlaying ? 'play' : 'pause',
       sessionId,
       data: { 
         isPlaying: newIsPlaying,
-        currentTime 
+        currentTime: baseTime 
       }
     });
   };
 
   const handleSeek = (time: number) => {
-    setCurrentTime(time);
+    // Apply delay adjustment for this viewer
+    const adjustedTime = getAdjustedTime(time);
+    setCurrentTime(adjustedTime);
     
+    // Send base time (without delay) to synchronize with others
     sendMessage({
       type: 'seek',
       sessionId,

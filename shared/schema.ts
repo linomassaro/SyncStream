@@ -8,6 +8,7 @@ export interface VideoSource {
   url: string;
   title: string;
   language?: string;
+  delay?: number; // Delay in seconds (positive = ahead, negative = behind)
 }
 
 export const sessions = pgTable("sessions", {
@@ -59,14 +60,6 @@ export type InsertUser = z.infer<typeof insertUserSchema>;
 export type Session = typeof sessions.$inferSelect;
 export type Viewer = typeof viewers.$inferSelect;
 export type User = typeof users.$inferSelect;
-
-// Video source type
-export interface VideoSource {
-  id: string;
-  url: string;
-  title: string;
-  language?: string;
-}
 
 // WebSocket message types
 export interface SyncMessage {
