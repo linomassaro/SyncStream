@@ -76,6 +76,12 @@ export default function StreamPage() {
           if (message.data.videoUrl) {
             setVideoUrl(message.data.videoUrl);
           }
+          if (message.data.videoSources) {
+            setVideoSources(message.data.videoSources);
+          }
+          if (message.data.selectedSourceId) {
+            setSelectedSourceId(message.data.selectedSourceId);
+          }
         }
         break;
       case 'play':
@@ -102,6 +108,11 @@ export default function StreamPage() {
           setIsPlaying(false);
         }
         break;
+      case 'source-change':
+        if (message.data?.videoSources) {
+          setVideoSources(message.data.videoSources);
+        }
+        break;
       case 'viewer-join':
       case 'viewer-leave':
         queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId, 'viewers'] });
@@ -114,10 +125,17 @@ export default function StreamPage() {
     if (session && typeof session === 'object') {
       const sessionData = session as any;
       setVideoUrl(sessionData.videoUrl || '');
+      setVideoSources(sessionData.videoSources || []);
       setIsPlaying(sessionData.isPlaying || false);
       setCurrentTime(sessionData.currentTime || 0);
+      
+      // Set selected source to the first available source if none selected
+      if (sessionData.videoSources && sessionData.videoSources.length > 0 && !selectedSourceId) {
+        setSelectedSourceId(sessionData.videoSources[0].id);
+        setVideoUrl(sessionData.videoSources[0].url);
+      }
     }
-  }, [session]);
+  }, [session, selectedSourceId]);
 
   const handleCreateSession = () => {
     const newSessionId = nanoid();
@@ -137,6 +155,35 @@ export default function StreamPage() {
       sessionId,
       data: { videoUrl: url }
     });
+  };
+
+  const handleSourcesUpdate = (sources: any[]) => {
+    setVideoSources(sources);
+    
+    sendMessage({
+      type: 'source-change',
+      sessionId,
+      data: { videoSources: sources }
+    });
+  };
+
+  const handleSourceSelect = (sourceId: string) => {
+    const source = videoSources.find(s => s.id === sourceId);
+    if (source) {
+      setSelectedSourceId(sourceId);
+      setVideoUrl(source.url);
+      setCurrentTime(0);
+      setIsPlaying(false);
+      
+      sendMessage({
+        type: 'video-change',
+        sessionId,
+        data: { 
+          videoUrl: source.url,
+          selectedSourceId: sourceId 
+        }
+      });
+    }
   };
 
   const handlePlayPause = () => {
@@ -248,10 +295,13 @@ export default function StreamPage() {
         isPlaying={isPlaying}
         currentTime={currentTime}
         duration={duration}
+        videoSources={videoSources}
+        selectedSourceId={selectedSourceId}
         onPlayPause={handlePlayPause}
         onSeek={handleSeek}
         onProgress={handleProgress}
         onDuration={setDuration}
+        onSourceSelect={handleSourceSelect}
       />
       
       {showUrlPanel && (
@@ -261,19 +311,37 @@ export default function StreamPage() {
         />
       )}
       
+      {showSourcesPanel && (
+        <VideoSourcesPanel
+          videoSources={videoSources}
+          onSourcesUpdate={handleSourcesUpdate}
+          onClose={() => setShowSourcesPanel(false)}
+        />
+      )}
+      
       <StatusToast
         status={connectionStatus}
         isVisible={connectionStatus !== 'connected'}
       />
       
-      {/* Add Video Button - Upper Right Corner */}
-      <button
-        onClick={() => setShowUrlPanel(true)}
-        className="fixed top-20 right-6 w-12 h-12 bg-primary hover:bg-blue-600 rounded-full shadow-lg flex items-center justify-center z-30 transition-all duration-200 hover:scale-110"
-        title="Load new video"
-      >
-        <span className="text-white text-xl font-light">+</span>
-      </button>
+      {/* Video Management Buttons - Upper Right Corner */}
+      <div className="fixed top-20 right-6 flex flex-col space-y-3 z-30">
+        <button
+          onClick={() => setShowSourcesPanel(true)}
+          className="w-12 h-12 bg-primary hover:bg-blue-600 rounded-full shadow-lg flex items-center justify-center transition-all duration-200 hover:scale-110"
+          title="Manage video sources"
+        >
+          <span className="text-white text-xl font-light">⚙</span>
+        </button>
+        
+        <button
+          onClick={() => setShowUrlPanel(true)}
+          className="w-12 h-12 bg-green-600 hover:bg-green-700 rounded-full shadow-lg flex items-center justify-center transition-all duration-200 hover:scale-110"
+          title="Add single video"
+        >
+          <span className="text-white text-xl font-light">+</span>
+        </button>
+      </div>
     </div>
   );
 }
