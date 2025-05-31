@@ -139,8 +139,14 @@ export default function StreamPage() {
     }
   }, [session, sessionId, queryClient]);
 
-  // Use API data as primary source, fall back to local state
-  const effectiveVideoSources = Array.isArray(sourcesData) && sourcesData.length > 0 ? sourcesData : videoSources;
+  // Combine API data and local state - prefer the one with more sources
+  const effectiveVideoSources = (() => {
+    const apiSources = Array.isArray(sourcesData) ? sourcesData : [];
+    const localSources = Array.isArray(videoSources) ? videoSources : [];
+    
+    // Use whichever has more sources, or API if equal
+    return apiSources.length >= localSources.length ? apiSources : localSources;
+  })();
 
   const handleCreateSession = () => {
     const newSessionId = nanoid();

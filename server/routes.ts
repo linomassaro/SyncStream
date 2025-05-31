@@ -250,8 +250,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/sessions/:id/sources', async (req, res) => {
     try {
       const sources = await storage.getVideoSources(req.params.id);
+      console.log(`Getting sources for session ${req.params.id}:`, sources);
       res.json(sources);
     } catch (error) {
+      console.error('Error getting sources:', error);
       res.status(500).json({ message: 'Server error' });
     }
   });
