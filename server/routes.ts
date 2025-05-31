@@ -88,6 +88,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
         }
 
+        if (message.type === 'source-change' && message.data?.videoSources) {
+          await storage.updateSession(sessionId, {
+            videoSources: message.data.videoSources
+          });
+        }
+
         // Broadcast to other viewers
         broadcastToSession(sessionId, message, viewerId);
         

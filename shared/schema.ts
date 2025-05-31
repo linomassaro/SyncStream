@@ -5,11 +5,19 @@ import { z } from "zod";
 export const sessions = pgTable("sessions", {
   id: text("id").primaryKey(),
   videoUrl: text("video_url"),
+  videoSources: jsonb("video_sources").$type<VideoSource[]>().default([]),
   isPlaying: boolean("is_playing").default(false),
   currentTime: integer("current_time").default(0),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
+
+export interface VideoSource {
+  id: string;
+  url: string;
+  title: string;
+  language?: string;
+}
 
 export const viewers = pgTable("viewers", {
   id: serial("id").primaryKey(),
@@ -27,6 +35,7 @@ export const users = pgTable("users", {
 export const insertSessionSchema = createInsertSchema(sessions).pick({
   id: true,
   videoUrl: true,
+  videoSources: true,
   isPlaying: true,
   currentTime: true,
 });
@@ -51,12 +60,14 @@ export type User = typeof users.$inferSelect;
 
 // WebSocket message types
 export interface SyncMessage {
-  type: 'sync' | 'play' | 'pause' | 'seek' | 'video-change' | 'viewer-join' | 'viewer-leave';
+  type: 'sync' | 'play' | 'pause' | 'seek' | 'video-change' | 'source-change' | 'viewer-join' | 'viewer-leave';
   sessionId: string;
   data?: {
     currentTime?: number;
     isPlaying?: boolean;
     videoUrl?: string;
+    videoSources?: VideoSource[];
+    selectedSourceId?: string;
     viewerId?: string;
   };
 }
