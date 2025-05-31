@@ -11,20 +11,16 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { VideoSourceSelector } from "./video-source-selector";
 
 interface VideoPlayerProps {
   videoUrl: string;
   isPlaying: boolean;
   currentTime: number;
   duration: number;
-  videoSources?: any[];
-  selectedSourceId?: string | null;
   onPlayPause: () => void;
   onSeek: (time: number) => void;
   onProgress: (played: number) => void;
   onDuration: (duration: number) => void;
-  onSourceSelect?: (sourceId: string) => void;
 }
 
 export function VideoPlayer({
@@ -32,13 +28,10 @@ export function VideoPlayer({
   isPlaying,
   currentTime,
   duration,
-  videoSources = [],
-  selectedSourceId,
   onPlayPause,
   onSeek,
   onProgress,
-  onDuration,
-  onSourceSelect
+  onDuration
 }: VideoPlayerProps) {
   const [showControls, setShowControls] = useState(true);
   const [volume, setVolume] = useState(0.8);
@@ -407,15 +400,6 @@ export function VideoPlayer({
               </div>
 
               <div className="flex items-center space-x-4">
-                {/* Video Source Selection */}
-                {videoSources.length > 0 && onSourceSelect && (
-                  <VideoSourceSelector
-                    videoSources={videoSources}
-                    selectedSourceId={selectedSourceId}
-                    onSourceSelect={onSourceSelect}
-                  />
-                )}
-
                 {/* Audio Track Selection */}
                 {audioTracks.length > 0 && (
                   <DropdownMenu>

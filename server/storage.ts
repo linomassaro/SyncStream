@@ -61,7 +61,6 @@ export class MemStorage implements IStorage {
     const session: Session = {
       id: insertSession.id,
       videoUrl: insertSession.videoUrl || null,
-      videoSources: (insertSession.videoSources as any) || [],
       isPlaying: insertSession.isPlaying || null,
       currentTime: insertSession.currentTime || null,
       createdAt: new Date(),
