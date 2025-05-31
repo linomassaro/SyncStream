@@ -164,6 +164,12 @@ export default function StreamPage() {
       });
       const sources = await response.json();
       
+      // Update local state immediately
+      setVideoSources(sources);
+      
+      // Invalidate query cache to ensure consistency
+      queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId, 'sources'] });
+      
       sendMessage({
         type: 'source-add',
         sessionId,
@@ -178,6 +184,12 @@ export default function StreamPage() {
     try {
       const response = await apiRequest('DELETE', `/api/sessions/${sessionId}/sources/${sourceId}`);
       const sources = await response.json();
+      
+      // Update local state immediately
+      setVideoSources(sources);
+      
+      // Invalidate query cache to ensure consistency
+      queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId, 'sources'] });
       
       sendMessage({
         type: 'source-remove',
