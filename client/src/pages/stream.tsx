@@ -24,7 +24,7 @@ export default function StreamPage() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
-  const [wasPlayingBeforeDelay, setWasPlayingBeforeDelay] = useState(false);
+
 
   // WebSocket connection for real-time sync
   const { 
@@ -73,7 +73,7 @@ export default function StreamPage() {
           // Apply delay adjustment to received base time
           const adjustedTime = getAdjustedTime(message.data.currentTime || 0);
           setCurrentTime(adjustedTime);
-          setIsPlaying(message.data.isPlaying || false);
+          setSessionIsPlaying(message.data.isPlaying || false);
           if (message.data.videoUrl) {
             setVideoUrl(message.data.videoUrl);
           }
@@ -86,7 +86,7 @@ export default function StreamPage() {
         }
         break;
       case 'play':
-        setIsPlaying(true);
+        setSessionIsPlaying(true);
         if (message.data?.currentTime !== undefined) {
           // Apply delay adjustment to received base time
           const adjustedTime = getAdjustedTime(message.data.currentTime);
@@ -94,7 +94,7 @@ export default function StreamPage() {
         }
         break;
       case 'pause':
-        setIsPlaying(false);
+        setSessionIsPlaying(false);
         if (message.data?.currentTime !== undefined) {
           // Apply delay adjustment to received base time
           const adjustedTime = getAdjustedTime(message.data.currentTime);
@@ -206,25 +206,19 @@ export default function StreamPage() {
     return time >= 0 && (duration === 0 || time <= duration);
   };
 
-  // Track when time becomes valid to auto-resume playback
-  const previousTimeValid = useRef(isTimeInValidRange(currentTime));
+  // Track the session's actual playing state (from WebSocket messages)
+  const [sessionIsPlaying, setSessionIsPlaying] = useState(false);
   
+  // Auto-resume logic: if session is playing and time becomes valid, start playing
   useEffect(() => {
     const currentTimeValid = isTimeInValidRange(currentTime);
     
-    // If time was invalid but now is valid, and we were playing before delay
-    if (!previousTimeValid.current && currentTimeValid && wasPlayingBeforeDelay) {
+    if (sessionIsPlaying && currentTimeValid && !isPlaying) {
       setIsPlaying(true);
-      setWasPlayingBeforeDelay(false);
-    }
-    // If time was valid but now is invalid, remember playing state
-    else if (previousTimeValid.current && !currentTimeValid && isPlaying) {
-      setWasPlayingBeforeDelay(true);
+    } else if (!currentTimeValid && isPlaying) {
       setIsPlaying(false);
     }
-    
-    previousTimeValid.current = currentTimeValid;
-  }, [currentTime, duration, isPlaying, wasPlayingBeforeDelay]);
+  }, [currentTime, duration, sessionIsPlaying, isPlaying]);
 
   // Calculate base time from adjusted time (for sending to server)
   const getBaseTimeFromAdjusted = (adjustedTime: number) => {
