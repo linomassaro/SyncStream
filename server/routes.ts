@@ -161,6 +161,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get session viewers
+  app.get('/api/sessions/:id/viewers', async (req, res) => {
+    try {
+      // Count active WebSocket connections for this session
+      const activeConnections = Array.from(connections.values())
+        .filter(conn => conn.sessionId === req.params.id && conn.ws.readyState === WebSocket.OPEN);
+      
+      res.json(activeConnections.map(conn => ({ viewerId: conn.viewerId })));
+    } catch (error) {
+      res.status(500).json({ message: 'Server error' });
+    }
+  });
+
+  // Get video sources for session
+  app.get('/api/sessions/:id/sources', async (req, res) => {
+    try {
+      const sources = await storage.getVideoSources(req.params.id);
+      console.log(`Getting sources for session ${req.params.id}:`, sources);
+      res.json(sources);
+    } catch (error) {
+      console.error('Error getting video sources:', error);
+      res.status(500).json({ message: 'Server error' });
+    }
+  });
+
   // Get session info
   app.get('/api/sessions/:id', async (req, res) => {
     try {
@@ -189,31 +214,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       res.json(session);
     } catch (error) {
-      res.status(500).json({ message: 'Server error' });
-    }
-  });
-
-  // Get session viewers
-  app.get('/api/sessions/:id/viewers', async (req, res) => {
-    try {
-      // Count active WebSocket connections for this session
-      const activeConnections = Array.from(connections.values())
-        .filter(conn => conn.sessionId === req.params.id && conn.ws.readyState === WebSocket.OPEN);
-      
-      res.json(activeConnections.map(conn => ({ viewerId: conn.viewerId })));
-    } catch (error) {
-      res.status(500).json({ message: 'Server error' });
-    }
-  });
-
-  // Get video sources for session
-  app.get('/api/sessions/:id/sources', async (req, res) => {
-    try {
-      const sources = await storage.getVideoSources(req.params.id);
-      console.log(`Getting sources for session ${req.params.id}:`, sources);
-      res.json(sources);
-    } catch (error) {
-      console.error('Error getting video sources:', error);
       res.status(500).json({ message: 'Server error' });
     }
   });
