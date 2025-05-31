@@ -276,6 +276,16 @@ export default function StreamPage() {
     });
   };
 
+  // Apply delay to current time based on selected source
+  const getAdjustedCurrentTime = () => {
+    if (!selectedSourceId) return currentTime;
+    
+    const selectedSource = effectiveVideoSources.find(s => s.id === selectedSourceId);
+    const delay = selectedSource?.delay || 0;
+    
+    return Math.max(0, currentTime + delay);
+  };
+
   const handleProgress = (played: number) => {
     if (Math.abs(played * duration - currentTime) > 2) {
       // Only update if there's a significant difference to avoid constant updates
@@ -359,7 +369,7 @@ export default function StreamPage() {
       <VideoPlayer
         videoUrl={videoUrl}
         isPlaying={isPlaying}
-        currentTime={currentTime}
+        currentTime={getAdjustedCurrentTime()}
         duration={duration}
         onPlayPause={handlePlayPause}
         onSeek={handleSeek}
