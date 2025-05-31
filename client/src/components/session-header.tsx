@@ -1,19 +1,13 @@
 import { Play, Copy, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
-import { AudioChat } from "./audio-chat";
-import type { SyncMessage } from "@shared/schema";
 
 interface SessionHeaderProps {
   sessionId: string;
   syncStatus: 'synced' | 'syncing' | 'error';
-  viewerId: string;
-  isConnected: boolean;
-  sendMessage: (message: SyncMessage) => void;
-  lastMessage: SyncMessage | null;
 }
 
-export function SessionHeader({ sessionId, syncStatus, viewerId, isConnected, sendMessage, lastMessage }: SessionHeaderProps) {
+export function SessionHeader({ sessionId, syncStatus }: SessionHeaderProps) {
   const [copied, setCopied] = useState(false);
 
   const handleCopySessionId = async () => {
@@ -84,15 +78,6 @@ export function SessionHeader({ sessionId, syncStatus, viewerId, isConnected, se
         </div>
         
         <div className="flex items-center space-x-4">
-          {/* Audio Chat */}
-          <AudioChat 
-            sessionId={sessionId}
-            viewerId={viewerId}
-            isConnected={isConnected}
-            sendMessage={sendMessage}
-            lastMessage={lastMessage}
-          />
-          
           {/* Sync Status */}
           <div className="flex items-center space-x-2">
             <div className={`w-2 h-2 ${getSyncStatusColor()} rounded-full ${syncStatus === 'syncing' ? 'animate-pulse' : ''}`}></div>
@@ -104,6 +89,8 @@ export function SessionHeader({ sessionId, syncStatus, viewerId, isConnected, se
               {getSyncStatusText()}
             </span>
           </div>
+          
+
         </div>
       </div>
       

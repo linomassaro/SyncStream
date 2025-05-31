@@ -313,10 +313,6 @@ export default function StreamPage() {
       <SessionHeader 
         sessionId={sessionId}
         syncStatus={isConnected ? 'synced' : 'syncing'}
-        viewerId={viewerId}
-        isConnected={isConnected}
-        sendMessage={sendMessage}
-        lastMessage={lastMessage}
       />
       
       {/* Always show video player interface for all viewers */}

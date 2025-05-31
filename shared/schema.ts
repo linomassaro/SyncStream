@@ -63,7 +63,7 @@ export type User = typeof users.$inferSelect;
 
 // WebSocket message types
 export interface SyncMessage {
-  type: 'sync' | 'play' | 'pause' | 'seek' | 'video-change' | 'source-change' | 'viewer-join' | 'viewer-leave' | 'webrtc-offer' | 'webrtc-answer' | 'webrtc-ice-candidate';
+  type: 'sync' | 'play' | 'pause' | 'seek' | 'video-change' | 'source-change' | 'viewer-join' | 'viewer-leave';
   sessionId: string;
   data?: {
     currentTime?: number;
@@ -72,9 +72,5 @@ export interface SyncMessage {
     videoSources?: VideoSource[];
     selectedSourceId?: string;
     viewerId?: string;
-    targetViewerId?: string;
-    offer?: RTCSessionDescriptionInit;
-    answer?: RTCSessionDescriptionInit;
-    iceCandidate?: RTCIceCandidateInit;
   };
 }
