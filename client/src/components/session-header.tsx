@@ -1,4 +1,4 @@
-import { Play, Settings, Copy, Check } from "lucide-react";
+import { Play, Copy, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 
@@ -90,14 +90,7 @@ export function SessionHeader({ sessionId, syncStatus }: SessionHeaderProps) {
             </span>
           </div>
           
-          {/* Settings Menu */}
-          <Button
-            variant="ghost"
-            size="sm"
-            className="p-2 hover:bg-gray-700 rounded-lg"
-          >
-            <Settings className="h-4 w-4 on-surface-variant" />
-          </Button>
+
         </div>
       </div>
       

@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import ReactPlayer from "react-player";
-import { Play, Pause, SkipBack, SkipForward, Volume2, VolumeX, Maximize, Settings, Languages, Subtitles, Film } from "lucide-react";
+import { Play, Pause, SkipBack, SkipForward, Volume2, VolumeX, Maximize, Languages, Film } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import {
@@ -471,48 +471,7 @@ export function VideoPlayer({
                   </DropdownMenu>
                 )}
 
-                {/* Subtitle Track Selection */}
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="p-2 hover:bg-gray-700 rounded-lg"
-                      title="Subtitles"
-                    >
-                      <Subtitles className="h-4 w-4 on-surface-variant" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent className="surface-variant border-gray-600">
-                    <DropdownMenuLabel className="on-surface">Subtitles</DropdownMenuLabel>
-                    <DropdownMenuSeparator className="bg-gray-600" />
-                    <DropdownMenuItem
-                      onClick={() => handleSubtitleTrackChange('off')}
-                      className={`on-surface hover:bg-gray-700 ${
-                        selectedSubtitleTrack === 'off' ? 'bg-gray-700' : ''
-                      }`}
-                    >
-                      Off
-                    </DropdownMenuItem>
-                    {subtitleTracks.map((track, index) => (
-                      <DropdownMenuItem
-                        key={track.id || index}
-                        onClick={() => handleSubtitleTrackChange(track.id || index.toString())}
-                        className={`on-surface hover:bg-gray-700 ${
-                          selectedSubtitleTrack === (track.id || index.toString()) ? 'bg-gray-700' : ''
-                        }`}
-                      >
-                        {track.label || track.language || `Track ${index + 1}`}
-                      </DropdownMenuItem>
-                    ))}
-                  </DropdownMenuContent>
-                </DropdownMenu>
 
-                {/* Sync Status Indicator */}
-                <div className="flex items-center space-x-2 text-sm">
-                  <div className="w-2 h-2 bg-success rounded-full"></div>
-                  <span className="text-success text-xs hidden md:inline">Synced</span>
-                </div>
                 
                 {/* Fullscreen */}
                 <Button
