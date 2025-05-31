@@ -55,7 +55,7 @@ export function ReactionsOverlay({ reactions }: ReactionsOverlayProps) {
             }}
             exit={{ opacity: 0, scale: 0 }}
             transition={{ 
-              duration: 5,
+              duration: 3,
               ease: "easeOut"
             }}
             className="absolute text-4xl select-none"
