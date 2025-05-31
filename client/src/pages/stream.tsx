@@ -197,7 +197,12 @@ export default function StreamPage() {
   // Calculate adjusted time for this viewer based on source delay
   const getAdjustedTime = (baseTime: number) => {
     const delay = getCurrentSourceDelay();
-    return Math.max(0, baseTime + delay);
+    return baseTime + delay;
+  };
+
+  // Check if current time is within valid playback range
+  const isTimeInValidRange = (time: number) => {
+    return time >= 0 && (duration === 0 || time <= duration);
   };
 
   // Calculate base time from adjusted time (for sending to server)
@@ -317,11 +322,11 @@ export default function StreamPage() {
       
       {/* Always show video player interface for all viewers */}
       <VideoPlayer
-        videoUrl={videoUrl}
+        videoUrl={isTimeInValidRange(currentTime) ? videoUrl : ''}
         videoSources={videoSources}
         selectedSourceId={selectedSourceId}
-        isPlaying={isPlaying}
-        currentTime={currentTime}
+        isPlaying={isPlaying && isTimeInValidRange(currentTime)}
+        currentTime={Math.max(0, currentTime)}
         duration={duration}
         onPlayPause={handlePlayPause}
         onSeek={handleSeek}
