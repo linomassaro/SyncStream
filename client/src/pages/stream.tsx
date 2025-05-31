@@ -109,6 +109,9 @@ export default function StreamPage() {
         break;
       case 'source-add':
       case 'source-remove':
+        if (message.data?.videoSources) {
+          setVideoSources(message.data.videoSources);
+        }
         // Video sources updated - refresh from API
         queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId, 'sources'] });
         break;
@@ -129,15 +132,14 @@ export default function StreamPage() {
       setVideoUrl(sessionData.videoUrl || '');
       setIsPlaying(sessionData.isPlaying || false);
       setCurrentTime(sessionData.currentTime || 0);
+      
+      // Fetch video sources when session loads
+      queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId, 'sources'] });
     }
-  }, [session]);
+  }, [session, sessionId, queryClient]);
 
-  // Use local state if it has data, otherwise fall back to API data
-  const effectiveVideoSources = videoSources.length > 0 ? videoSources : (Array.isArray(sourcesData) ? sourcesData : []);
-  
-  console.log('Debug - videoSources:', videoSources);
-  console.log('Debug - sourcesData:', sourcesData);
-  console.log('Debug - effectiveVideoSources:', effectiveVideoSources);
+  // Use API data as primary source, fall back to local state
+  const effectiveVideoSources = Array.isArray(sourcesData) && sourcesData.length > 0 ? sourcesData : videoSources;
 
   const handleCreateSession = () => {
     const newSessionId = nanoid();
@@ -168,7 +170,7 @@ export default function StreamPage() {
       });
       const sources = await response.json();
       
-      console.log('Added source - Response:', sources);
+
       
       // Update local state immediately
       setVideoSources(sources);
