@@ -67,7 +67,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           data: {
             currentTime: session.currentTime || 0,
             isPlaying: session.isPlaying || false,
-            videoUrl: session.videoUrl || ''
+            videoUrl: session.videoUrl || '',
+            videoSources: session.videoSources || [],
+            selectedSourceId: session.selectedSourceId
           }
         }));
       }
