@@ -1,4 +1,4 @@
-import { sessions, viewers, users, type Session, type Viewer, type User, type InsertSession, type InsertViewer, type InsertUser, type VideoSource } from "@shared/schema";
+import { sessions, viewers, users, type Session, type Viewer, type User, type InsertSession, type InsertViewer, type InsertUser } from "@shared/schema";
 
 export interface IStorage {
   // User methods
@@ -11,11 +11,6 @@ export interface IStorage {
   createSession(session: InsertSession): Promise<Session>;
   updateSession(id: string, updates: Partial<Session>): Promise<Session | undefined>;
   deleteSession(id: string): Promise<boolean>;
-  
-  // Video source methods
-  addVideoSource(sessionId: string, source: VideoSource): Promise<VideoSource[]>;
-  removeVideoSource(sessionId: string, sourceId: string): Promise<VideoSource[]>;
-  getVideoSources(sessionId: string): Promise<VideoSource[]>;
   
   // Viewer methods
   addViewer(viewer: InsertViewer): Promise<Viewer>;
@@ -66,7 +61,6 @@ export class MemStorage implements IStorage {
     const session: Session = {
       id: insertSession.id,
       videoUrl: insertSession.videoUrl || null,
-      videoSources: [],
       isPlaying: insertSession.isPlaying || null,
       currentTime: insertSession.currentTime || null,
       createdAt: new Date(),
@@ -91,37 +85,6 @@ export class MemStorage implements IStorage {
 
   async deleteSession(id: string): Promise<boolean> {
     return this.sessions.delete(id);
-  }
-
-  // Video source methods
-  async addVideoSource(sessionId: string, source: VideoSource): Promise<VideoSource[]> {
-    const session = this.sessions.get(sessionId);
-    if (!session) throw new Error('Session not found');
-    
-    const videoSources = session.videoSources || [];
-    videoSources.push(source);
-    
-    const updatedSession = { ...session, videoSources, updatedAt: new Date() };
-    this.sessions.set(sessionId, updatedSession);
-    
-    return videoSources;
-  }
-
-  async removeVideoSource(sessionId: string, sourceId: string): Promise<VideoSource[]> {
-    const session = this.sessions.get(sessionId);
-    if (!session) throw new Error('Session not found');
-    
-    const videoSources = (session.videoSources || []).filter(source => source.id !== sourceId);
-    
-    const updatedSession = { ...session, videoSources, updatedAt: new Date() };
-    this.sessions.set(sessionId, updatedSession);
-    
-    return videoSources;
-  }
-
-  async getVideoSources(sessionId: string): Promise<VideoSource[]> {
-    const session = this.sessions.get(sessionId);
-    return session?.videoSources || [];
   }
 
   // Viewer methods

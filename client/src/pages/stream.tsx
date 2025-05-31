@@ -5,13 +5,11 @@ import { nanoid } from "nanoid";
 import { SessionHeader } from "@/components/session-header";
 import { VideoPlayer } from "@/components/video-player";
 import { VideoUrlPanel } from "@/components/video-url-panel";
-import { VideoSourceManager } from "@/components/video-source-manager";
 import { StatusToast } from "@/components/status-toast";
 import { useWebSocket } from "@/hooks/use-websocket";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
-import { Play, Video } from "lucide-react";
-import type { VideoSource } from "@shared/schema";
+import { Play } from "lucide-react";
 
 export default function StreamPage() {
   const params = useParams();
@@ -19,10 +17,7 @@ export default function StreamPage() {
   const [sessionId, setSessionId] = useState(params.sessionId || '');
   const [viewerId] = useState(() => nanoid());
   const [showUrlPanel, setShowUrlPanel] = useState(false);
-  const [showSourceManager, setShowSourceManager] = useState(false);
   const [videoUrl, setVideoUrl] = useState('');
-  const [videoSources, setVideoSources] = useState<VideoSource[]>([]);
-  const [selectedSourceId, setSelectedSourceId] = useState<string | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -45,12 +40,7 @@ export default function StreamPage() {
   const { data: viewers = [] } = useQuery({
     queryKey: ['/api/sessions', sessionId, 'viewers'],
     enabled: !!sessionId,
-  });
-
-  // Query video sources
-  const { data: sourcesData = [] } = useQuery({
-    queryKey: ['/api/sources', sessionId],
-    enabled: !!sessionId,
+    refetchInterval: 5000,
   });
 
   // Create session mutation
@@ -107,23 +97,12 @@ export default function StreamPage() {
           setIsPlaying(false);
         }
         break;
-      case 'source-add':
-      case 'source-remove':
-        if (message.data?.videoSources) {
-          setVideoSources(message.data.videoSources);
-        }
-        // Video sources updated - refresh from API
-        queryClient.invalidateQueries({ queryKey: ['/api/sources', sessionId] });
-        break;
-      case 'viewer-source-change':
-        // Other viewers changed their source selection - no action needed
-        break;
       case 'viewer-join':
       case 'viewer-leave':
         queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId, 'viewers'] });
         break;
     }
-  }, [lastMessage, sessionId, queryClient]);
+  }, [lastMessage, sessionId]);
 
   // Initialize session data
   useEffect(() => {
@@ -132,14 +111,8 @@ export default function StreamPage() {
       setVideoUrl(sessionData.videoUrl || '');
       setIsPlaying(sessionData.isPlaying || false);
       setCurrentTime(sessionData.currentTime || 0);
-      
-      // Fetch video sources when session loads
-      queryClient.invalidateQueries({ queryKey: ['/api/sources', sessionId] });
     }
-  }, [session, sessionId, queryClient]);
-
-  // Use API data as primary source, fall back to local state
-  const effectiveVideoSources = Array.isArray(sourcesData) && sourcesData.length > 0 ? sourcesData : videoSources;
+  }, [session]);
 
   const handleCreateSession = () => {
     const newSessionId = nanoid();
@@ -159,70 +132,6 @@ export default function StreamPage() {
       sessionId,
       data: { videoUrl: url }
     });
-  };
-
-  const handleAddSource = async (url: string, title: string) => {
-    try {
-      const response = await apiRequest('POST', `/api/sources/${sessionId}`, {
-        url,
-        title,
-        addedBy: viewerId
-      });
-      const sources = await response.json();
-      
-      // Update local state immediately
-      setVideoSources(sources);
-      
-      // Invalidate query cache to ensure consistency
-      queryClient.invalidateQueries({ queryKey: ['/api/sources', sessionId] });
-      
-      sendMessage({
-        type: 'source-add',
-        sessionId,
-        data: { videoSources: sources }
-      });
-    } catch (error) {
-      console.error('Failed to add video source:', error);
-    }
-  };
-
-  const handleRemoveSource = async (sourceId: string) => {
-    try {
-      const response = await apiRequest('DELETE', `/api/sources/${sessionId}/${sourceId}`);
-      const sources = await response.json();
-      
-      // Update local state immediately
-      setVideoSources(sources);
-      
-      // Invalidate query cache to ensure consistency
-      queryClient.invalidateQueries({ queryKey: ['/api/sources', sessionId] });
-      
-      sendMessage({
-        type: 'source-remove',
-        sessionId,
-        data: { videoSources: sources }
-      });
-    } catch (error) {
-      console.error('Failed to remove video source:', error);
-    }
-  };
-
-  const handleSelectSource = (sourceId: string) => {
-    const source = effectiveVideoSources.find(s => s.id === sourceId);
-    if (source) {
-      setSelectedSourceId(sourceId);
-      setVideoUrl(source.url);
-      
-      // Notify other viewers about source selection
-      sendMessage({
-        type: 'viewer-source-change',
-        sessionId,
-        data: { 
-          selectedSourceId: sourceId,
-          viewerId: viewerId
-        }
-      });
-    }
   };
 
   const handlePlayPause = () => {
@@ -346,40 +255,20 @@ export default function StreamPage() {
           onClose={() => setShowUrlPanel(false)}
         />
       )}
-
-      {showSourceManager && (
-        <VideoSourceManager
-          sources={effectiveVideoSources}
-          selectedSourceId={selectedSourceId}
-          onAddSource={handleAddSource}
-          onRemoveSource={handleRemoveSource}
-          onSelectSource={handleSelectSource}
-          onClose={() => setShowSourceManager(false)}
-        />
-      )}
       
       <StatusToast
         status={connectionStatus}
         isVisible={connectionStatus !== 'connected'}
       />
       
-      {/* Video Controls Buttons - Upper Right Corner */}
-      <div className="fixed top-20 right-6 flex flex-col gap-2 z-30">
-        <button
-          onClick={() => setShowSourceManager(true)}
-          className="w-12 h-12 bg-gray-800 hover:bg-gray-700 rounded-full shadow-lg flex items-center justify-center transition-all duration-200 hover:scale-110"
-          title="Manage video sources"
-        >
-          <Video className="text-white h-5 w-5" />
-        </button>
-        <button
-          onClick={() => setShowUrlPanel(true)}
-          className="w-12 h-12 bg-primary hover:bg-blue-600 rounded-full shadow-lg flex items-center justify-center transition-all duration-200 hover:scale-110"
-          title="Load new video"
-        >
-          <span className="text-white text-xl font-light">+</span>
-        </button>
-      </div>
+      {/* Add Video Button - Upper Right Corner */}
+      <button
+        onClick={() => setShowUrlPanel(true)}
+        className="fixed top-20 right-6 w-12 h-12 bg-primary hover:bg-blue-600 rounded-full shadow-lg flex items-center justify-center z-30 transition-all duration-200 hover:scale-110"
+        title="Load new video"
+      >
+        <span className="text-white text-xl font-light">+</span>
+      </button>
     </div>
   );
 }

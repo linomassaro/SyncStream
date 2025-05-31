@@ -264,6 +264,9 @@ export function VideoPlayer({
                 }
               },
               file: {
+                attributes: {
+                  crossOrigin: 'anonymous'
+                },
                 tracks: subtitleTracks.map((track, index) => ({
                   kind: 'subtitles',
                   src: track.src,
