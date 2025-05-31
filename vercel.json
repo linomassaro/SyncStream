@@ -6,7 +6,7 @@
       "use": "@vercel/node"
     },
     {
-      "src": "client/**/*",
+      "src": "package.json",
       "use": "@vercel/static-build",
       "config": {
         "distDir": "dist"
@@ -20,12 +20,7 @@
     },
     {
       "src": "/(.*)",
-      "dest": "/client/$1"
+      "dest": "/dist/$1"
     }
-  ],
-  "functions": {
-    "server/index.ts": {
-      "includeFiles": "server/**"
-    }
-  }
+  ]
 }
