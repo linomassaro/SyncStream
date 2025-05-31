@@ -26,7 +26,7 @@ export function ReactionsOverlay({ reactions }: ReactionsOverlayProps) {
     if (newReactions.length > 0) {
       setActiveReactions(prev => [...prev, ...newReactions]);
 
-      // Remove reactions after animation duration
+      // Remove reactions after 5 seconds
       newReactions.forEach(reaction => {
         setTimeout(() => {
           setActiveReactions(prev => prev.filter(r => r.id !== reaction.id));
@@ -55,8 +55,9 @@ export function ReactionsOverlay({ reactions }: ReactionsOverlayProps) {
             }}
             exit={{ opacity: 0, scale: 0 }}
             transition={{ 
-              duration: 3,
-              ease: "easeOut"
+              duration: 5,
+              ease: "easeOut",
+              times: [0, 0.1, 0.8, 1]
             }}
             className="absolute text-4xl select-none"
             style={{
