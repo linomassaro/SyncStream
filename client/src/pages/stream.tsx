@@ -45,14 +45,12 @@ export default function StreamPage() {
   const { data: viewers = [] } = useQuery({
     queryKey: ['/api/sessions', sessionId, 'viewers'],
     enabled: !!sessionId,
-    refetchInterval: 5000,
   });
 
   // Query video sources
   const { data: sourcesData = [] } = useQuery({
     queryKey: ['/api/sessions', sessionId, 'sources'],
     enabled: !!sessionId,
-    refetchInterval: 3000,
   });
 
   // Create session mutation
@@ -111,9 +109,7 @@ export default function StreamPage() {
         break;
       case 'source-add':
       case 'source-remove':
-        if (message.data?.videoSources) {
-          setVideoSources(message.data.videoSources);
-        }
+        // Video sources updated - refresh from API
         queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId, 'sources'] });
         break;
       case 'viewer-source-change':
@@ -124,7 +120,7 @@ export default function StreamPage() {
         queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId, 'viewers'] });
         break;
     }
-  }, [lastMessage, sessionId]);
+  }, [lastMessage, sessionId, queryClient]);
 
   // Initialize session data
   useEffect(() => {
@@ -136,12 +132,8 @@ export default function StreamPage() {
     }
   }, [session]);
 
-  // Update video sources from API
-  useEffect(() => {
-    if (Array.isArray(sourcesData)) {
-      setVideoSources(sourcesData);
-    }
-  }, [sourcesData]);
+  // Initialize video sources once from API data
+  const effectiveVideoSources = Array.isArray(sourcesData) ? sourcesData : videoSources;
 
   const handleCreateSession = () => {
     const newSessionId = nanoid();
@@ -198,7 +190,7 @@ export default function StreamPage() {
   };
 
   const handleSelectSource = (sourceId: string) => {
-    const source = videoSources.find(s => s.id === sourceId);
+    const source = effectiveVideoSources.find(s => s.id === sourceId);
     if (source) {
       setSelectedSourceId(sourceId);
       setVideoUrl(source.url);
@@ -339,7 +331,7 @@ export default function StreamPage() {
 
       {showSourceManager && (
         <VideoSourceManager
-          sources={videoSources}
+          sources={effectiveVideoSources}
           selectedSourceId={selectedSourceId}
           onAddSource={handleAddSource}
           onRemoveSource={handleRemoveSource}
