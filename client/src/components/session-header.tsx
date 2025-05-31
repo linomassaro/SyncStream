@@ -1,13 +1,16 @@
 import { Play, Copy, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
+import { AudioChat } from "./audio-chat";
 
 interface SessionHeaderProps {
   sessionId: string;
   syncStatus: 'synced' | 'syncing' | 'error';
+  viewerId: string;
+  isConnected: boolean;
 }
 
-export function SessionHeader({ sessionId, syncStatus }: SessionHeaderProps) {
+export function SessionHeader({ sessionId, syncStatus, viewerId, isConnected }: SessionHeaderProps) {
   const [copied, setCopied] = useState(false);
 
   const handleCopySessionId = async () => {
@@ -78,6 +81,13 @@ export function SessionHeader({ sessionId, syncStatus }: SessionHeaderProps) {
         </div>
         
         <div className="flex items-center space-x-4">
+          {/* Audio Chat */}
+          <AudioChat 
+            sessionId={sessionId}
+            viewerId={viewerId}
+            isConnected={isConnected}
+          />
+          
           {/* Sync Status */}
           <div className="flex items-center space-x-2">
             <div className={`w-2 h-2 ${getSyncStatusColor()} rounded-full ${syncStatus === 'syncing' ? 'animate-pulse' : ''}`}></div>
@@ -89,8 +99,6 @@ export function SessionHeader({ sessionId, syncStatus }: SessionHeaderProps) {
               {getSyncStatusText()}
             </span>
           </div>
-          
-
         </div>
       </div>
       
