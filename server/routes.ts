@@ -31,11 +31,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   }
 
   wss.on('connection', (ws, req) => {
+    console.log('WebSocket connection attempt:', req.url);
+    
     const url = new URL(req.url!, `http://${req.headers.host}`);
     const sessionId = url.searchParams.get('sessionId');
     const viewerId = url.searchParams.get('viewerId');
 
+    console.log('WebSocket params:', { sessionId, viewerId });
+
     if (!sessionId || !viewerId) {
+      console.log('WebSocket connection rejected: missing sessionId or viewerId');
       ws.close(1008, 'Missing sessionId or viewerId');
       return;
     }

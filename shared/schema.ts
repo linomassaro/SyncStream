@@ -13,7 +13,7 @@ export interface VideoSource {
 export const sessions = pgTable("sessions", {
   id: text("id").primaryKey(),
   videoUrl: text("video_url"),
-  videoSources: jsonb("video_sources").$type<VideoSource[]>().default([]),
+  videoSources: jsonb("video_sources").$type<VideoSource[]>(),
   selectedSourceId: text("selected_source_id"),
   isPlaying: boolean("is_playing").default(false),
   currentTime: integer("current_time").default(0),
