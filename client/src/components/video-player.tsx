@@ -11,6 +11,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { ReactionsOverlay, type Reaction } from "@/components/reactions-overlay";
+import { ReactionButtons } from "@/components/reaction-buttons";
 import type { VideoSource } from "@shared/schema";
 
 interface VideoPlayerProps {
@@ -20,11 +22,13 @@ interface VideoPlayerProps {
   isPlaying: boolean;
   currentTime: number;
   duration: number;
+  reactions?: Reaction[];
   onPlayPause: () => void;
   onSeek: (time: number) => void;
   onProgress: (played: number) => void;
   onDuration: (duration: number) => void;
   onSourceChange?: (sourceId: string) => void;
+  onReaction?: (emoji: string) => void;
 }
 
 export function VideoPlayer({
@@ -34,11 +38,13 @@ export function VideoPlayer({
   isPlaying,
   currentTime,
   duration,
+  reactions = [],
   onPlayPause,
   onSeek,
   onProgress,
   onDuration,
-  onSourceChange
+  onSourceChange,
+  onReaction
 }: VideoPlayerProps) {
   const [showControls, setShowControls] = useState(true);
   const [volume, setVolume] = useState(0.8);
@@ -290,6 +296,9 @@ export function VideoPlayer({
             </div>
           </div>
         )}
+
+        {/* Reactions Overlay */}
+        <ReactionsOverlay reactions={reactions} />
       </div>
 
       {/* Video Controls Overlay */}
@@ -476,6 +485,11 @@ export function VideoPlayer({
                       ))}
                     </DropdownMenuContent>
                   </DropdownMenu>
+                )}
+
+                {/* Reaction Buttons */}
+                {onReaction && (
+                  <ReactionButtons onReaction={onReaction} />
                 )}
 
 
