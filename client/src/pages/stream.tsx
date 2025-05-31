@@ -4,22 +4,20 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { nanoid } from "nanoid";
 import { SessionHeader } from "@/components/session-header";
 import { VideoPlayer } from "@/components/video-player";
-import { VideoSourceManager } from "@/components/video-source-manager";
+import { VideoUrlPanel } from "@/components/video-url-panel";
 import { StatusToast } from "@/components/status-toast";
 import { useWebSocket } from "@/hooks/use-websocket";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
-import { Play, List } from "lucide-react";
-import type { VideoSource } from "@shared/schema";
+import { Play } from "lucide-react";
 
 export default function StreamPage() {
   const params = useParams();
   const [, setLocation] = useLocation();
   const [sessionId, setSessionId] = useState(params.sessionId || '');
   const [viewerId] = useState(() => nanoid());
-  const [showSourceManager, setShowSourceManager] = useState(false);
-  const [videoSources, setVideoSources] = useState<VideoSource[]>([]);
-  const [selectedSourceId, setSelectedSourceId] = useState<string>('');
+  const [showUrlPanel, setShowUrlPanel] = useState(false);
+  const [videoUrl, setVideoUrl] = useState('');
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -70,11 +68,8 @@ export default function StreamPage() {
         if (message.data) {
           setCurrentTime(message.data.currentTime || 0);
           setIsPlaying(message.data.isPlaying || false);
-          if (message.data.videoSources) {
-            setVideoSources(message.data.videoSources);
-            if (message.data.videoSources.length > 0 && !selectedSourceId) {
-              setSelectedSourceId(message.data.videoSources[0].id);
-            }
+          if (message.data.videoUrl) {
+            setVideoUrl(message.data.videoUrl);
           }
         }
         break;
@@ -95,10 +90,11 @@ export default function StreamPage() {
           setCurrentTime(message.data.currentTime);
         }
         break;
-      case 'source-add':
-      case 'source-remove':
-        if (message.data?.videoSources) {
-          setVideoSources(message.data.videoSources);
+      case 'video-change':
+        if (message.data?.videoUrl) {
+          setVideoUrl(message.data.videoUrl);
+          setCurrentTime(0);
+          setIsPlaying(false);
         }
         break;
       case 'viewer-join':
@@ -106,22 +102,17 @@ export default function StreamPage() {
         queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId, 'viewers'] });
         break;
     }
-  }, [lastMessage, sessionId, selectedSourceId]);
+  }, [lastMessage, sessionId]);
 
   // Initialize session data
   useEffect(() => {
     if (session && typeof session === 'object') {
       const sessionData = session as any;
-      setVideoSources(sessionData.videoSources || []);
+      setVideoUrl(sessionData.videoUrl || '');
       setIsPlaying(sessionData.isPlaying || false);
       setCurrentTime(sessionData.currentTime || 0);
-      
-      // Set first source as selected if none selected
-      if (sessionData.videoSources && sessionData.videoSources.length > 0 && !selectedSourceId) {
-        setSelectedSourceId(sessionData.videoSources[0].id);
-      }
     }
-  }, [session, selectedSourceId]);
+  }, [session]);
 
   const handleCreateSession = () => {
     const newSessionId = nanoid();
@@ -132,35 +123,15 @@ export default function StreamPage() {
     createSessionMutation.mutate({ sessionId: inputSessionId });
   };
 
-  const handleSourceAdd = (source: VideoSource) => {
-    const updatedSources = [...videoSources, source];
-    setVideoSources(updatedSources);
+  const handleVideoLoad = (url: string) => {
+    setVideoUrl(url);
+    setShowUrlPanel(false);
     
     sendMessage({
-      type: 'source-add',
+      type: 'video-change',
       sessionId,
-      data: { videoSources: updatedSources }
+      data: { videoUrl: url }
     });
-  };
-
-  const handleSourceRemove = (sourceId: string) => {
-    const updatedSources = videoSources.filter(s => s.id !== sourceId);
-    setVideoSources(updatedSources);
-    
-    // If removed source was selected, select first available or none
-    if (selectedSourceId === sourceId) {
-      setSelectedSourceId(updatedSources.length > 0 ? updatedSources[0].id : '');
-    }
-    
-    sendMessage({
-      type: 'source-remove',
-      sessionId,
-      data: { videoSources: updatedSources }
-    });
-  };
-
-  const handleSourceSelect = (sourceId: string) => {
-    setSelectedSourceId(sourceId);
   };
 
   const handlePlayPause = () => {
@@ -268,7 +239,7 @@ export default function StreamPage() {
       
       {/* Always show video player interface for all viewers */}
       <VideoPlayer
-        videoUrl={selectedSourceId ? videoSources.find(s => s.id === selectedSourceId)?.url || '' : ''}
+        videoUrl={videoUrl}
         isPlaying={isPlaying}
         currentTime={currentTime}
         duration={duration}
@@ -278,15 +249,10 @@ export default function StreamPage() {
         onDuration={setDuration}
       />
       
-      {/* Video Source Manager */}
-      {showSourceManager && (
-        <VideoSourceManager
-          videoSources={videoSources}
-          selectedSourceId={selectedSourceId}
-          onSourceAdd={handleSourceAdd}
-          onSourceRemove={handleSourceRemove}
-          onSourceSelect={handleSourceSelect}
-          onClose={() => setShowSourceManager(false)}
+      {showUrlPanel && (
+        <VideoUrlPanel
+          onVideoLoad={handleVideoLoad}
+          onClose={() => setShowUrlPanel(false)}
         />
       )}
       
@@ -295,31 +261,14 @@ export default function StreamPage() {
         isVisible={connectionStatus !== 'connected'}
       />
       
-      {/* Source Manager Button - Upper Right Corner */}
+      {/* Add Video Button - Upper Right Corner */}
       <button
-        onClick={() => setShowSourceManager(true)}
+        onClick={() => setShowUrlPanel(true)}
         className="fixed top-20 right-6 w-12 h-12 bg-primary hover:bg-blue-600 rounded-full shadow-lg flex items-center justify-center z-30 transition-all duration-200 hover:scale-110"
-        title="Manage video sources"
+        title="Load new video"
       >
-        <List className="text-white h-5 w-5" />
+        <span className="text-white text-xl font-light">+</span>
       </button>
-      
-      {/* Current Source Indicator */}
-      {selectedSourceId && videoSources.length > 0 && (
-        <div className="fixed top-20 left-6 bg-surface-variant/90 backdrop-blur-sm border border-gray-600 rounded-lg px-3 py-2 z-30">
-          <div className="flex items-center space-x-2">
-            <div className="w-2 h-2 bg-primary rounded-full"></div>
-            <span className="text-sm on-surface font-medium">
-              {videoSources.find(s => s.id === selectedSourceId)?.title || 'Unknown Source'}
-            </span>
-            {videoSources.find(s => s.id === selectedSourceId)?.quality && (
-              <span className="text-xs on-surface-variant">
-                {videoSources.find(s => s.id === selectedSourceId)?.quality}
-              </span>
-            )}
-          </div>
-        </div>
-      )}
     </div>
   );
 }

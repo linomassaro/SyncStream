@@ -62,7 +62,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           data: {
             currentTime: session.currentTime || 0,
             isPlaying: session.isPlaying || false,
-            videoSources: session.videoSources || []
+            videoUrl: session.videoUrl || ''
           }
         }));
       }
@@ -80,15 +80,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
         }
 
-        if (message.type === 'source-add' && message.data?.videoSources) {
+        if (message.type === 'video-change' && message.data?.videoUrl) {
           await storage.updateSession(sessionId, {
-            videoSources: message.data.videoSources
-          });
-        }
-
-        if (message.type === 'source-remove' && message.data?.videoSources) {
-          await storage.updateSession(sessionId, {
-            videoSources: message.data.videoSources
+            videoUrl: message.data.videoUrl,
+            currentTime: 0,
+            isPlaying: false
           });
         }
 
@@ -126,7 +122,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!session) {
         const sessionData = insertSessionSchema.parse({
           id: sessionId,
-          videoSources: req.body.videoSources || [],
+          videoUrl: req.body.videoUrl || null,
           isPlaying: false,
           currentTime: 0
         });
