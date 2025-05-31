@@ -3,8 +3,8 @@
   "buildCommand": "npm run build",
   "outputDirectory": "dist/public",
   "functions": {
-    "api/index.js": {
-      "runtime": "nodejs18.x"
+    "api/*.js": {
+      "runtime": "@vercel/node@2.15.10"
     }
   },
   "routes": [
