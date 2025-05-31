@@ -11,6 +11,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Play } from "lucide-react";
 import type { VideoSource } from "@shared/schema";
+import type { Reaction } from "@/components/reactions-overlay";
 
 export default function StreamPage() {
   const params = useParams();
@@ -24,6 +25,7 @@ export default function StreamPage() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
+  const [reactions, setReactions] = useState<Reaction[]>([]);
 
   // WebSocket connection for real-time sync
   const { 
@@ -118,6 +120,19 @@ export default function StreamPage() {
         }
         break;
       // Remove source-change handling since each viewer selects independently
+      case 'reaction':
+        if (message.data?.reaction) {
+          const newReaction: Reaction = {
+            id: nanoid(),
+            emoji: message.data.reaction.emoji,
+            viewerId: message.data.reaction.viewerId,
+            timestamp: message.data.reaction.timestamp,
+            x: Math.random() * window.innerWidth * 0.8 + window.innerWidth * 0.1,
+            y: Math.random() * window.innerHeight * 0.6 + window.innerHeight * 0.2
+          };
+          setReactions(prev => [...prev, newReaction]);
+        }
+        break;
       case 'viewer-join':
       case 'viewer-leave':
         queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId, 'viewers'] });
@@ -243,6 +258,20 @@ export default function StreamPage() {
     }
   };
 
+  const handleReaction = (emoji: string) => {
+    sendMessage({
+      type: 'reaction',
+      sessionId,
+      data: {
+        reaction: {
+          emoji,
+          viewerId,
+          timestamp: Date.now()
+        }
+      }
+    });
+  };
+
   // Landing page for new users
   if (!sessionId) {
     return (
@@ -323,11 +352,13 @@ export default function StreamPage() {
         isPlaying={isPlaying}
         currentTime={currentTime}
         duration={duration}
+        reactions={reactions}
         onPlayPause={handlePlayPause}
         onSeek={handleSeek}
         onProgress={handleProgress}
         onDuration={setDuration}
         onSourceChange={handleSourceChange}
+        onReaction={handleReaction}
       />
       
       {showUrlPanel && (
