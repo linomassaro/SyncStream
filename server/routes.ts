@@ -88,6 +88,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
         }
 
+        if (message.type === 'source-add' && message.data?.videoSource) {
+          try {
+            const sources = await storage.addVideoSource(sessionId, message.data.videoSource);
+            broadcastToSession(sessionId, {
+              type: 'source-add',
+              sessionId,
+              data: { videoSources: sources }
+            });
+          } catch (error) {
+            console.error('Error adding video source:', error);
+          }
+        }
+
+        if (message.type === 'source-remove' && message.data?.selectedSourceId) {
+          try {
+            const sources = await storage.removeVideoSource(sessionId, message.data.selectedSourceId);
+            broadcastToSession(sessionId, {
+              type: 'source-remove',
+              sessionId,
+              data: { videoSources: sources }
+            });
+          } catch (error) {
+            console.error('Error removing video source:', error);
+          }
+        }
+
         // Broadcast to other viewers
         broadcastToSession(sessionId, message, viewerId);
         
