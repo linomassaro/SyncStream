@@ -132,8 +132,12 @@ export default function StreamPage() {
     }
   }, [session]);
 
-  // Initialize video sources once from API data
-  const effectiveVideoSources = Array.isArray(sourcesData) ? sourcesData : videoSources;
+  // Use local state if it has data, otherwise fall back to API data
+  const effectiveVideoSources = videoSources.length > 0 ? videoSources : (Array.isArray(sourcesData) ? sourcesData : []);
+  
+  console.log('Debug - videoSources:', videoSources);
+  console.log('Debug - sourcesData:', sourcesData);
+  console.log('Debug - effectiveVideoSources:', effectiveVideoSources);
 
   const handleCreateSession = () => {
     const newSessionId = nanoid();
@@ -163,6 +167,8 @@ export default function StreamPage() {
         addedBy: viewerId
       });
       const sources = await response.json();
+      
+      console.log('Added source - Response:', sources);
       
       // Update local state immediately
       setVideoSources(sources);
