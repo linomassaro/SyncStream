@@ -17,6 +17,7 @@ export interface VideoSource {
   url: string;
   title: string;
   addedBy?: string;
+  delay?: number; // Time delay in seconds (can be positive or negative)
 }
 
 export const viewers = pgTable("viewers", {

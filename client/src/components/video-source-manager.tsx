@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus, Trash2, Play, Check } from "lucide-react";
+import { Plus, Trash2, Play, Check, Clock, Edit3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,9 +9,10 @@ import type { VideoSource } from "@shared/schema";
 interface VideoSourceManagerProps {
   sources: VideoSource[];
   selectedSourceId: string | null;
-  onAddSource: (url: string, title: string) => void;
+  onAddSource: (url: string, title: string, delay?: number) => void;
   onRemoveSource: (sourceId: string) => void;
   onSelectSource: (sourceId: string) => void;
+  onUpdateSourceDelay: (sourceId: string, delay: number) => void;
   onClose: () => void;
 }
 
@@ -21,20 +22,26 @@ export function VideoSourceManager({
   onAddSource,
   onRemoveSource,
   onSelectSource,
+  onUpdateSourceDelay,
   onClose
 }: VideoSourceManagerProps) {
   const [newUrl, setNewUrl] = useState("");
   const [newTitle, setNewTitle] = useState("");
+  const [newDelay, setNewDelay] = useState("0");
   const [isAdding, setIsAdding] = useState(false);
+  const [editingDelayId, setEditingDelayId] = useState<string | null>(null);
+  const [editDelay, setEditDelay] = useState("0");
 
   const handleAddSource = () => {
     if (!newUrl.trim()) return;
     
     setIsAdding(true);
     try {
-      onAddSource(newUrl.trim(), newTitle.trim() || "Untitled Video");
+      const delay = parseFloat(newDelay) || 0;
+      onAddSource(newUrl.trim(), newTitle.trim() || "Untitled Video", delay);
       setNewUrl("");
       setNewTitle("");
+      setNewDelay("0");
     } finally {
       setIsAdding(false);
     }
@@ -44,6 +51,23 @@ export function VideoSourceManager({
     if (e.key === 'Enter') {
       handleAddSource();
     }
+  };
+
+  const handleEditDelay = (sourceId: string, currentDelay: number) => {
+    setEditingDelayId(sourceId);
+    setEditDelay(currentDelay.toString());
+  };
+
+  const handleSaveDelay = (sourceId: string) => {
+    const delay = parseFloat(editDelay) || 0;
+    onUpdateSourceDelay(sourceId, delay);
+    setEditingDelayId(null);
+    setEditDelay("0");
+  };
+
+  const handleCancelEdit = () => {
+    setEditingDelayId(null);
+    setEditDelay("0");
   };
 
   return (
@@ -82,6 +106,15 @@ export function VideoSourceManager({
                 value={newTitle}
                 onChange={(e) => setNewTitle(e.target.value)}
                 onKeyDown={handleKeyDown}
+                className="surface border-gray-600 on-surface placeholder-gray-400"
+              />
+              <Input
+                type="number"
+                placeholder="Delay in seconds (e.g., -2.5, 0, 3)"
+                value={newDelay}
+                onChange={(e) => setNewDelay(e.target.value)}
+                onKeyDown={handleKeyDown}
+                step="0.1"
                 className="surface border-gray-600 on-surface placeholder-gray-400"
               />
               <Button
@@ -135,11 +168,54 @@ export function VideoSourceManager({
                         <p className="text-xs on-surface-variant truncate">
                           {source.url}
                         </p>
-                        {source.addedBy && (
-                          <p className="text-xs text-gray-500 mt-1">
-                            Added by {source.addedBy}
-                          </p>
-                        )}
+                        <div className="flex items-center gap-2 mt-1">
+                          {source.addedBy && (
+                            <p className="text-xs text-gray-500">
+                              Added by {source.addedBy}
+                            </p>
+                          )}
+                          {editingDelayId === source.id ? (
+                            <div className="flex items-center gap-1">
+                              <Input
+                                type="number"
+                                value={editDelay}
+                                onChange={(e) => setEditDelay(e.target.value)}
+                                className="h-6 w-16 text-xs"
+                                step="0.1"
+                              />
+                              <Button
+                                onClick={() => handleSaveDelay(source.id)}
+                                size="sm"
+                                className="h-6 px-2 text-xs"
+                              >
+                                ✓
+                              </Button>
+                              <Button
+                                onClick={handleCancelEdit}
+                                size="sm"
+                                variant="ghost"
+                                className="h-6 px-2 text-xs"
+                              >
+                                ✕
+                              </Button>
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-1">
+                              <Clock className="h-3 w-3 text-gray-500" />
+                              <span className="text-xs text-gray-500">
+                                {source.delay ? `${source.delay > 0 ? '+' : ''}${source.delay}s` : '0s'}
+                              </span>
+                              <Button
+                                onClick={() => handleEditDelay(source.id, source.delay || 0)}
+                                size="sm"
+                                variant="ghost"
+                                className="h-5 w-5 p-0 text-gray-500 hover:text-gray-300"
+                              >
+                                <Edit3 className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          )}
+                        </div>
                       </div>
                       
                       <Button
