@@ -19,25 +19,25 @@ export function ReactionsOverlay({ reactions }: ReactionsOverlayProps) {
   const timeoutsRef = useRef<Map<string, NodeJS.Timeout>>(new Map());
 
   useEffect(() => {
-    // Clear all existing timeouts when reactions change
-    timeoutsRef.current.forEach(timeout => clearTimeout(timeout));
-    timeoutsRef.current.clear();
-    
-    // Replace all active reactions with current ones
-    setActiveReactions([...reactions]);
+    // Find only NEW reactions that haven't been processed yet
+    const newReactions = reactions.filter(
+      reaction => !timeoutsRef.current.has(reaction.id)
+    );
 
-    // Set new timeouts for all reactions
-    reactions.forEach(reaction => {
-      const timeoutId = setTimeout(() => {
-        setActiveReactions(prev => {
-          const filtered = prev.filter(r => r.id !== reaction.id);
-          return filtered;
-        });
-        timeoutsRef.current.delete(reaction.id);
-      }, 5000);
-      
-      timeoutsRef.current.set(reaction.id, timeoutId);
-    });
+    if (newReactions.length > 0) {
+      // Add only new reactions to active reactions
+      setActiveReactions(prev => [...prev, ...newReactions]);
+
+      // Set timeouts only for new reactions
+      newReactions.forEach(reaction => {
+        const timeoutId = setTimeout(() => {
+          setActiveReactions(prev => prev.filter(r => r.id !== reaction.id));
+          timeoutsRef.current.delete(reaction.id);
+        }, 5000);
+        
+        timeoutsRef.current.set(reaction.id, timeoutId);
+      });
+    }
 
     // Cleanup function
     return () => {
