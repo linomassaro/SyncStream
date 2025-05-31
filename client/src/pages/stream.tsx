@@ -109,14 +109,7 @@ export default function StreamPage() {
           setVideoSources(message.data.videoSources);
         }
         break;
-      case 'source-change':
-        if (message.data?.selectedSourceId && message.data?.videoUrl) {
-          setSelectedSourceId(message.data.selectedSourceId);
-          setVideoUrl(message.data.videoUrl);
-          setCurrentTime(message.data.currentTime || 0);
-          setIsPlaying(message.data.isPlaying || false);
-        }
-        break;
+      // Remove source-change handling since each viewer selects independently
       case 'viewer-join':
       case 'viewer-leave':
         queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId, 'viewers'] });
@@ -181,16 +174,9 @@ export default function StreamPage() {
       setSelectedSourceId(sourceId);
       setVideoUrl(source.url);
       
-      sendMessage({
-        type: 'source-change',
-        sessionId,
-        data: { 
-          selectedSourceId: sourceId,
-          videoUrl: source.url,
-          currentTime,
-          isPlaying
-        }
-      });
+      // Only change the source locally for this viewer
+      // Don't broadcast source change to other viewers
+      // They keep their own selected sources
     }
   };
 

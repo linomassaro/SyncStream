@@ -95,17 +95,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
         }
 
-        if (message.type === 'source-change' && message.data?.selectedSourceId && message.data?.videoUrl) {
-          await storage.updateSession(sessionId, {
-            selectedSourceId: message.data.selectedSourceId,
-            videoUrl: message.data.videoUrl,
-            currentTime: message.data.currentTime || 0,
-            isPlaying: message.data.isPlaying || false
-          });
-        }
+        // Remove source-change handling - each viewer selects their own source independently
 
-        // Broadcast to other viewers
-        broadcastToSession(sessionId, message, viewerId);
+        // Broadcast to other viewers (except source-change which is local only)
+        if (message.type !== 'source-change') {
+          broadcastToSession(sessionId, message, viewerId);
+        }
         
         // Update viewer last seen
         await storage.updateViewerLastSeen(sessionId, viewerId);
