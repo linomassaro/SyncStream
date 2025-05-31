@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
+import { useEffect, useState, useRef } from "react";
 
 export interface Reaction {
   id: string;
@@ -16,27 +16,38 @@ interface ReactionsOverlayProps {
 
 export function ReactionsOverlay({ reactions }: ReactionsOverlayProps) {
   const [activeReactions, setActiveReactions] = useState<Reaction[]>([]);
+  const timeoutsRef = useRef<Map<string, NodeJS.Timeout>>(new Map());
 
   useEffect(() => {
-    // Add new reactions to active list
-    const newReactions = reactions.filter(
-      reaction => !activeReactions.find(active => active.id === reaction.id)
-    );
+    // Clear all existing timeouts when reactions change
+    timeoutsRef.current.forEach(timeout => clearTimeout(timeout));
+    timeoutsRef.current.clear();
+    
+    // Replace all active reactions with current ones
+    setActiveReactions([...reactions]);
 
-    if (newReactions.length > 0) {
-      setActiveReactions(prev => [...prev, ...newReactions]);
+    // Set new timeouts for all reactions
+    reactions.forEach(reaction => {
+      const timeoutId = setTimeout(() => {
+        setActiveReactions(prev => {
+          const filtered = prev.filter(r => r.id !== reaction.id);
+          return filtered;
+        });
+        timeoutsRef.current.delete(reaction.id);
+      }, 5000);
+      
+      timeoutsRef.current.set(reaction.id, timeoutId);
+    });
 
-      // Remove reactions after 5 seconds
-      newReactions.forEach(reaction => {
-        setTimeout(() => {
-          setActiveReactions(prev => prev.filter(r => r.id !== reaction.id));
-        }, 5000);
-      });
-    }
-  }, [reactions, activeReactions]);
+    // Cleanup function
+    return () => {
+      timeoutsRef.current.forEach(timeout => clearTimeout(timeout));
+      timeoutsRef.current.clear();
+    };
+  }, [reactions]);
 
   return (
-    <div className="absolute inset-0 pointer-events-none overflow-hidden">
+    <div className="fixed inset-0 pointer-events-none z-50">
       <AnimatePresence>
         {activeReactions.map((reaction) => (
           <motion.div
