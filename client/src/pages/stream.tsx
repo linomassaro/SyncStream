@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { nanoid } from "nanoid";
@@ -24,6 +24,7 @@ export default function StreamPage() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
+  const [wasPlayingBeforeDelay, setWasPlayingBeforeDelay] = useState(false);
 
   // WebSocket connection for real-time sync
   const { 
@@ -204,6 +205,26 @@ export default function StreamPage() {
   const isTimeInValidRange = (time: number) => {
     return time >= 0 && (duration === 0 || time <= duration);
   };
+
+  // Track when time becomes valid to auto-resume playback
+  const previousTimeValid = useRef(isTimeInValidRange(currentTime));
+  
+  useEffect(() => {
+    const currentTimeValid = isTimeInValidRange(currentTime);
+    
+    // If time was invalid but now is valid, and we were playing before delay
+    if (!previousTimeValid.current && currentTimeValid && wasPlayingBeforeDelay) {
+      setIsPlaying(true);
+      setWasPlayingBeforeDelay(false);
+    }
+    // If time was valid but now is invalid, remember playing state
+    else if (previousTimeValid.current && !currentTimeValid && isPlaying) {
+      setWasPlayingBeforeDelay(true);
+      setIsPlaying(false);
+    }
+    
+    previousTimeValid.current = currentTimeValid;
+  }, [currentTime, duration, isPlaying, wasPlayingBeforeDelay]);
 
   // Calculate base time from adjusted time (for sending to server)
   const getBaseTimeFromAdjusted = (adjustedTime: number) => {
