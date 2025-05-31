@@ -294,6 +294,7 @@ export default function StreamPage() {
         videoUrl={videoUrl}
         videoSources={videoSources}
         selectedSourceId={selectedSourceId}
+        sourceDelay={sourceDelay}
         isPlaying={isPlaying}
         currentTime={currentTime}
         duration={duration}
@@ -302,6 +303,7 @@ export default function StreamPage() {
         onProgress={handleProgress}
         onDuration={setDuration}
         onSourceChange={handleSourceChange}
+        onDelayChange={handleDelayChange}
       />
       
       {showUrlPanel && (
