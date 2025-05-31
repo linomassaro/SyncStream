@@ -15,6 +15,7 @@ export interface IStorage {
   // Video source methods
   addVideoSource(sessionId: string, source: VideoSource): Promise<VideoSource[]>;
   removeVideoSource(sessionId: string, sourceId: string): Promise<VideoSource[]>;
+  updateVideoSourceDelay(sessionId: string, sourceId: string, delay: number): Promise<VideoSource[]>;
   getVideoSources(sessionId: string): Promise<VideoSource[]>;
   
   // Viewer methods
@@ -112,6 +113,20 @@ export class MemStorage implements IStorage {
     if (!session) throw new Error('Session not found');
     
     const videoSources = (session.videoSources || []).filter(source => source.id !== sourceId);
+    
+    const updatedSession = { ...session, videoSources, updatedAt: new Date() };
+    this.sessions.set(sessionId, updatedSession);
+    
+    return videoSources;
+  }
+
+  async updateVideoSourceDelay(sessionId: string, sourceId: string, delay: number): Promise<VideoSource[]> {
+    const session = this.sessions.get(sessionId);
+    if (!session) throw new Error('Session not found');
+    
+    const videoSources = (session.videoSources || []).map(source => 
+      source.id === sourceId ? { ...source, delay } : source
+    );
     
     const updatedSession = { ...session, videoSources, updatedAt: new Date() };
     this.sessions.set(sessionId, updatedSession);

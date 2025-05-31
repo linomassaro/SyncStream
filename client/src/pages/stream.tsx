@@ -109,6 +109,7 @@ export default function StreamPage() {
         break;
       case 'source-add':
       case 'source-remove':
+      case 'source-update':
         if (message.data?.videoSources) {
           setVideoSources(message.data.videoSources);
         }
@@ -161,12 +162,13 @@ export default function StreamPage() {
     });
   };
 
-  const handleAddSource = async (url: string, title: string) => {
+  const handleAddSource = async (url: string, title: string, delay?: number) => {
     try {
       const response = await apiRequest('POST', `/api/sessions/${sessionId}/sources`, {
         url,
         title,
-        addedBy: viewerId
+        addedBy: viewerId,
+        delay: delay || 0
       });
       const sources = await response.json();
       
@@ -224,6 +226,29 @@ export default function StreamPage() {
           viewerId: viewerId
         }
       });
+    }
+  };
+
+  const handleUpdateSourceDelay = async (sourceId: string, delay: number) => {
+    try {
+      const response = await apiRequest('PATCH', `/api/sessions/${sessionId}/sources/${sourceId}`, {
+        delay
+      });
+      const sources = await response.json();
+      
+      // Update local state immediately
+      setVideoSources(sources);
+      
+      // Invalidate query cache to ensure consistency
+      queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId, 'sources'] });
+      
+      sendMessage({
+        type: 'source-update',
+        sessionId,
+        data: { videoSources: sources }
+      });
+    } catch (error) {
+      console.error('Failed to update video source delay:', error);
     }
   };
 
@@ -356,6 +381,7 @@ export default function StreamPage() {
           onAddSource={handleAddSource}
           onRemoveSource={handleRemoveSource}
           onSelectSource={handleSelectSource}
+          onUpdateSourceDelay={handleUpdateSourceDelay}
           onClose={() => setShowSourceManager(false)}
         />
       )}

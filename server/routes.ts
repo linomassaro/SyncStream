@@ -209,12 +209,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Add video source to session
   app.post('/api/sessions/:id/sources', async (req, res) => {
     try {
-      const { url, title, addedBy } = req.body;
+      const { url, title, addedBy, delay } = req.body;
       const source = {
         id: nanoid(),
         url,
         title: title || 'Untitled Video',
-        addedBy
+        addedBy,
+        delay: delay || 0
       };
       
       const sources = await storage.addVideoSource(req.params.id, source);
@@ -228,6 +229,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.delete('/api/sessions/:id/sources/:sourceId', async (req, res) => {
     try {
       const sources = await storage.removeVideoSource(req.params.id, req.params.sourceId);
+      res.json(sources);
+    } catch (error) {
+      res.status(500).json({ message: 'Server error' });
+    }
+  });
+
+  // Update video source delay
+  app.patch('/api/sessions/:id/sources/:sourceId', async (req, res) => {
+    try {
+      const { delay } = req.body;
+      const sources = await storage.updateVideoSourceDelay(req.params.id, req.params.sourceId, delay);
       res.json(sources);
     } catch (error) {
       res.status(500).json({ message: 'Server error' });
