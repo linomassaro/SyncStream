@@ -1,11 +1,13 @@
 import { useState } from "react";
-import { X, Play, Youtube, Link } from "lucide-react";
+import { X, Play, Youtube, Link, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { isValidVideoUrl, getVideoType } from "@/lib/video-utils";
+import { nanoid } from "nanoid";
+import type { VideoSource } from "@shared/schema";
 
 interface VideoUrlPanelProps {
-  onVideoLoad: (url: string) => void;
+  onVideoLoad: (url: string, sources?: VideoSource[]) => void;
   onClose: () => void;
 }
 
@@ -13,6 +15,8 @@ export function VideoUrlPanel({ onVideoLoad, onClose }: VideoUrlPanelProps) {
   const [url, setUrl] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+  const [videoSources, setVideoSources] = useState<VideoSource[]>([]);
+  const [showMultipleSources, setShowMultipleSources] = useState(false);
 
   const handleLoadVideo = async () => {
     if (!url.trim()) {

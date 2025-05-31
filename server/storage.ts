@@ -1,4 +1,4 @@
-import { sessions, viewers, users, type Session, type Viewer, type User, type InsertSession, type InsertViewer, type InsertUser } from "@shared/schema";
+import { sessions, viewers, users, type Session, type Viewer, type User, type InsertSession, type InsertViewer, type InsertUser, type VideoSource } from "@shared/schema";
 
 export interface IStorage {
   // User methods
@@ -61,6 +61,7 @@ export class MemStorage implements IStorage {
     const session: Session = {
       id: insertSession.id,
       videoUrl: insertSession.videoUrl || null,
+      videoSources: insertSession.videoSources || [],
       isPlaying: insertSession.isPlaying || null,
       currentTime: insertSession.currentTime || null,
       createdAt: new Date(),
