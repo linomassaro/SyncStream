@@ -1,0 +1,428 @@
+// server/index.ts
+import express2 from "express";
+
+// server/routes.ts
+import { createServer } from "http";
+import { WebSocketServer, WebSocket } from "ws";
+
+// server/storage.ts
+var MemStorage = class {
+  users;
+  sessions;
+  viewers;
+  currentUserId;
+  currentViewerId;
+  constructor() {
+    this.users = /* @__PURE__ */ new Map();
+    this.sessions = /* @__PURE__ */ new Map();
+    this.viewers = /* @__PURE__ */ new Map();
+    this.currentUserId = 1;
+    this.currentViewerId = 1;
+  }
+  // User methods
+  async getUser(id) {
+    return this.users.get(id);
+  }
+  async getUserByUsername(username) {
+    return Array.from(this.users.values()).find(
+      (user) => user.username === username
+    );
+  }
+  async createUser(insertUser) {
+    const id = this.currentUserId++;
+    const user = { ...insertUser, id };
+    this.users.set(id, user);
+    return user;
+  }
+  // Session methods
+  async getSession(id) {
+    return this.sessions.get(id);
+  }
+  async createSession(insertSession) {
+    const session = {
+      id: insertSession.id,
+      videoUrl: insertSession.videoUrl || null,
+      videoSources: [],
+      selectedSourceId: null,
+      isPlaying: false,
+      currentTime: 0,
+      createdAt: /* @__PURE__ */ new Date(),
+      updatedAt: /* @__PURE__ */ new Date()
+    };
+    this.sessions.set(insertSession.id, session);
+    return session;
+  }
+  async updateSession(id, updates) {
+    const session = this.sessions.get(id);
+    if (!session) return void 0;
+    const updatedSession = {
+      ...session,
+      ...updates,
+      updatedAt: /* @__PURE__ */ new Date()
+    };
+    this.sessions.set(id, updatedSession);
+    return updatedSession;
+  }
+  async deleteSession(id) {
+    return this.sessions.delete(id);
+  }
+  // Viewer methods
+  async addViewer(insertViewer) {
+    const id = this.currentViewerId++;
+    const viewer = {
+      id,
+      ...insertViewer,
+      lastSeen: /* @__PURE__ */ new Date()
+    };
+    const key = `${insertViewer.sessionId}-${insertViewer.viewerId}`;
+    this.viewers.set(key, viewer);
+    return viewer;
+  }
+  async removeViewer(sessionId, viewerId) {
+    const key = `${sessionId}-${viewerId}`;
+    return this.viewers.delete(key);
+  }
+  async getSessionViewers(sessionId) {
+    return Array.from(this.viewers.values()).filter(
+      (viewer) => viewer.sessionId === sessionId
+    );
+  }
+  async updateViewerLastSeen(sessionId, viewerId) {
+    const key = `${sessionId}-${viewerId}`;
+    const viewer = this.viewers.get(key);
+    if (viewer) {
+      viewer.lastSeen = /* @__PURE__ */ new Date();
+      this.viewers.set(key, viewer);
+    }
+  }
+};
+var storage = new MemStorage();
+
+// shared/schema.ts
+import { pgTable, text, serial, integer, boolean, timestamp, jsonb } from "drizzle-orm/pg-core";
+import { createInsertSchema } from "drizzle-zod";
+var sessions = pgTable("sessions", {
+  id: text("id").primaryKey(),
+  videoUrl: text("video_url"),
+  videoSources: jsonb("video_sources").$type(),
+  selectedSourceId: text("selected_source_id"),
+  isPlaying: boolean("is_playing").default(false),
+  currentTime: integer("current_time").default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow()
+});
+var viewers = pgTable("viewers", {
+  id: serial("id").primaryKey(),
+  sessionId: text("session_id").notNull().references(() => sessions.id),
+  viewerId: text("viewer_id").notNull(),
+  lastSeen: timestamp("last_seen").defaultNow()
+});
+var users = pgTable("users", {
+  id: serial("id").primaryKey(),
+  username: text("username").notNull().unique(),
+  password: text("password").notNull()
+});
+var insertSessionSchema = createInsertSchema(sessions).pick({
+  id: true,
+  videoUrl: true,
+  videoSources: true,
+  isPlaying: true,
+  currentTime: true
+});
+var insertViewerSchema = createInsertSchema(viewers).pick({
+  sessionId: true,
+  viewerId: true
+});
+var insertUserSchema = createInsertSchema(users).pick({
+  username: true,
+  password: true
+});
+
+// server/routes.ts
+import { nanoid } from "nanoid";
+async function registerRoutes(app2) {
+  const httpServer = createServer(app2);
+  const wss = new WebSocketServer({ server: httpServer, path: "/ws" });
+  const connections = /* @__PURE__ */ new Map();
+  function broadcastToSession(sessionId, message, excludeViewerId) {
+    connections.forEach((conn) => {
+      if (conn.sessionId === sessionId && conn.viewerId !== excludeViewerId && conn.ws.readyState === WebSocket.OPEN) {
+        conn.ws.send(JSON.stringify(message));
+      }
+    });
+  }
+  wss.on("connection", (ws, req) => {
+    console.log("WebSocket connection attempt:", req.url);
+    const url = new URL(req.url, `http://${req.headers.host}`);
+    const sessionId = url.searchParams.get("sessionId");
+    const viewerId = url.searchParams.get("viewerId");
+    console.log("WebSocket params:", { sessionId, viewerId });
+    if (!sessionId || !viewerId) {
+      console.log("WebSocket connection rejected: missing sessionId or viewerId");
+      ws.close(1008, "Missing sessionId or viewerId");
+      return;
+    }
+    const connectionId = nanoid();
+    connections.set(connectionId, { ws, sessionId, viewerId });
+    storage.addViewer({ sessionId, viewerId }).catch(console.error);
+    broadcastToSession(sessionId, {
+      type: "viewer-join",
+      sessionId,
+      data: { viewerId }
+    }, viewerId);
+    storage.getSession(sessionId).then((session) => {
+      if (session && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({
+          type: "sync",
+          sessionId,
+          data: {
+            currentTime: session.currentTime || 0,
+            isPlaying: session.isPlaying || false,
+            videoUrl: session.videoUrl || "",
+            videoSources: session.videoSources || [],
+            selectedSourceId: session.selectedSourceId
+          }
+        }));
+      }
+    });
+    ws.on("message", async (data) => {
+      try {
+        const message = JSON.parse(data.toString());
+        if (message.type === "sync" || message.type === "play" || message.type === "pause" || message.type === "seek") {
+          await storage.updateSession(sessionId, {
+            currentTime: message.data?.currentTime,
+            isPlaying: message.data?.isPlaying
+          });
+        }
+        if (message.type === "video-change" && message.data?.videoUrl) {
+          await storage.updateSession(sessionId, {
+            videoUrl: message.data.videoUrl,
+            videoSources: message.data.videoSources || [],
+            selectedSourceId: message.data.selectedSourceId,
+            currentTime: 0,
+            isPlaying: false
+          });
+        }
+        if (message.type !== "source-change") {
+          broadcastToSession(sessionId, message, viewerId);
+        }
+        await storage.updateViewerLastSeen(sessionId, viewerId);
+      } catch (error) {
+        console.error("WebSocket message error:", error);
+      }
+    });
+    ws.on("close", async () => {
+      connections.delete(connectionId);
+      await storage.removeViewer(sessionId, viewerId);
+      broadcastToSession(sessionId, {
+        type: "viewer-leave",
+        sessionId,
+        data: { viewerId }
+      });
+    });
+  });
+  app2.post("/api/sessions", async (req, res) => {
+    try {
+      const sessionId = req.body.sessionId || nanoid();
+      let session = await storage.getSession(sessionId);
+      if (!session) {
+        const sessionData = insertSessionSchema.parse({
+          id: sessionId,
+          videoUrl: req.body.videoUrl || null,
+          isPlaying: false,
+          currentTime: 0
+        });
+        session = await storage.createSession(sessionData);
+      }
+      res.json(session);
+    } catch (error) {
+      res.status(400).json({ message: error instanceof Error ? error.message : "Invalid request" });
+    }
+  });
+  app2.get("/api/sessions/:id", async (req, res) => {
+    try {
+      const session = await storage.getSession(req.params.id);
+      if (!session) {
+        return res.status(404).json({ message: "Session not found" });
+      }
+      const activeConnections = Array.from(connections.values()).filter((conn) => conn.sessionId === req.params.id && conn.ws.readyState === WebSocket.OPEN);
+      res.json({ ...session, viewerCount: activeConnections.length });
+    } catch (error) {
+      res.status(500).json({ message: "Server error" });
+    }
+  });
+  app2.patch("/api/sessions/:id", async (req, res) => {
+    try {
+      const updates = req.body;
+      const session = await storage.updateSession(req.params.id, updates);
+      if (!session) {
+        return res.status(404).json({ message: "Session not found" });
+      }
+      res.json(session);
+    } catch (error) {
+      res.status(500).json({ message: "Server error" });
+    }
+  });
+  app2.get("/api/sessions/:id/viewers", async (req, res) => {
+    try {
+      const activeConnections = Array.from(connections.values()).filter((conn) => conn.sessionId === req.params.id && conn.ws.readyState === WebSocket.OPEN);
+      res.json(activeConnections.map((conn) => ({ viewerId: conn.viewerId })));
+    } catch (error) {
+      res.status(500).json({ message: "Server error" });
+    }
+  });
+  return httpServer;
+}
+
+// server/vite.ts
+import express from "express";
+import fs from "fs";
+import path2 from "path";
+import { createServer as createViteServer, createLogger } from "vite";
+
+// vite.config.ts
+import { defineConfig } from "vite";
+import react from "@vitejs/plugin-react";
+import path from "path";
+import runtimeErrorOverlay from "@replit/vite-plugin-runtime-error-modal";
+var vite_config_default = defineConfig({
+  plugins: [
+    react(),
+    runtimeErrorOverlay(),
+    ...process.env.NODE_ENV !== "production" && process.env.REPL_ID !== void 0 ? [
+      await import("@replit/vite-plugin-cartographer").then(
+        (m) => m.cartographer()
+      )
+    ] : []
+  ],
+  resolve: {
+    alias: {
+      "@": path.resolve(import.meta.dirname, "client", "src"),
+      "@shared": path.resolve(import.meta.dirname, "shared"),
+      "@assets": path.resolve(import.meta.dirname, "attached_assets")
+    }
+  },
+  root: path.resolve(import.meta.dirname, "client"),
+  build: {
+    outDir: path.resolve(import.meta.dirname, "dist/public"),
+    emptyOutDir: true
+  }
+});
+
+// server/vite.ts
+import { nanoid as nanoid2 } from "nanoid";
+var viteLogger = createLogger();
+function log(message, source = "express") {
+  const formattedTime = (/* @__PURE__ */ new Date()).toLocaleTimeString("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: true
+  });
+  console.log(`${formattedTime} [${source}] ${message}`);
+}
+async function setupVite(app2, server) {
+  const serverOptions = {
+    middlewareMode: true,
+    hmr: { server },
+    allowedHosts: true
+  };
+  const vite = await createViteServer({
+    ...vite_config_default,
+    configFile: false,
+    customLogger: {
+      ...viteLogger,
+      error: (msg, options) => {
+        viteLogger.error(msg, options);
+        process.exit(1);
+      }
+    },
+    server: serverOptions,
+    appType: "custom"
+  });
+  app2.use(vite.middlewares);
+  app2.use("*", async (req, res, next) => {
+    const url = req.originalUrl;
+    try {
+      const clientTemplate = path2.resolve(
+        import.meta.dirname,
+        "..",
+        "client",
+        "index.html"
+      );
+      let template = await fs.promises.readFile(clientTemplate, "utf-8");
+      template = template.replace(
+        `src="/src/main.tsx"`,
+        `src="/src/main.tsx?v=${nanoid2()}"`
+      );
+      const page = await vite.transformIndexHtml(url, template);
+      res.status(200).set({ "Content-Type": "text/html" }).end(page);
+    } catch (e) {
+      vite.ssrFixStacktrace(e);
+      next(e);
+    }
+  });
+}
+function serveStatic(app2) {
+  const distPath = path2.resolve(import.meta.dirname, "public");
+  if (!fs.existsSync(distPath)) {
+    throw new Error(
+      `Could not find the build directory: ${distPath}, make sure to build the client first`
+    );
+  }
+  app2.use(express.static(distPath));
+  app2.use("*", (_req, res) => {
+    res.sendFile(path2.resolve(distPath, "index.html"));
+  });
+}
+
+// server/index.ts
+var app = express2();
+app.use(express2.json());
+app.use(express2.urlencoded({ extended: false }));
+app.use((req, res, next) => {
+  const start = Date.now();
+  const path3 = req.path;
+  let capturedJsonResponse = void 0;
+  const originalResJson = res.json;
+  res.json = function(bodyJson, ...args) {
+    capturedJsonResponse = bodyJson;
+    return originalResJson.apply(res, [bodyJson, ...args]);
+  };
+  res.on("finish", () => {
+    const duration = Date.now() - start;
+    if (path3.startsWith("/api")) {
+      let logLine = `${req.method} ${path3} ${res.statusCode} in ${duration}ms`;
+      if (capturedJsonResponse) {
+        logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
+      }
+      if (logLine.length > 80) {
+        logLine = logLine.slice(0, 79) + "\u2026";
+      }
+      log(logLine);
+    }
+  });
+  next();
+});
+(async () => {
+  const server = await registerRoutes(app);
+  app.use((err, _req, res, _next) => {
+    const status = err.status || err.statusCode || 500;
+    const message = err.message || "Internal Server Error";
+    res.status(status).json({ message });
+    throw err;
+  });
+  if (app.get("env") === "development") {
+    await setupVite(app, server);
+  } else {
+    serveStatic(app);
+  }
+  const port = 5e3;
+  server.listen({
+    port,
+    host: "0.0.0.0",
+    reusePort: true
+  }, () => {
+    log(`serving on port ${port}`);
+  });
+})();
