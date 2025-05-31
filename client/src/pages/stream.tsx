@@ -26,6 +26,7 @@ export default function StreamPage() {
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [reactions, setReactions] = useState<Reaction[]>([]);
+  const [reactionCounter, setReactionCounter] = useState(0);
 
   // WebSocket connection for real-time sync
   const { 
@@ -123,14 +124,16 @@ export default function StreamPage() {
       case 'reaction':
         if (message.data?.reaction) {
           const newReaction: Reaction = {
-            id: nanoid(),
+            id: `${Date.now()}-${Math.random()}`,
             emoji: message.data.reaction.emoji,
             viewerId: message.data.reaction.viewerId,
             timestamp: message.data.reaction.timestamp,
             x: Math.random() * window.innerWidth * 0.8 + window.innerWidth * 0.1,
             y: Math.random() * window.innerHeight * 0.6 + window.innerHeight * 0.2
           };
-          setReactions(prev => [...prev, newReaction]);
+          // Clear all previous reactions and only show the new one
+          setReactions([newReaction]);
+          setReactionCounter(prev => prev + 1);
         }
         break;
       case 'viewer-join':

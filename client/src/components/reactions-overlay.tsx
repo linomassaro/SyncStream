@@ -15,43 +15,26 @@ interface ReactionsOverlayProps {
 }
 
 export function ReactionsOverlay({ reactions }: ReactionsOverlayProps) {
-  const [activeReactions, setActiveReactions] = useState<Reaction[]>([]);
-  const timeoutsRef = useRef<Map<string, NodeJS.Timeout>>(new Map());
-
   useEffect(() => {
-    // Find only NEW reactions that haven't been processed yet
-    const newReactions = reactions.filter(
-      reaction => !timeoutsRef.current.has(reaction.id)
-    );
-
-    if (newReactions.length > 0) {
-      // Add only new reactions to active reactions
-      setActiveReactions(prev => [...prev, ...newReactions]);
-
-      // Set timeouts only for new reactions
-      newReactions.forEach(reaction => {
-        const timeoutId = setTimeout(() => {
-          setActiveReactions(prev => prev.filter(r => r.id !== reaction.id));
-          timeoutsRef.current.delete(reaction.id);
-        }, 5000);
-        
-        timeoutsRef.current.set(reaction.id, timeoutId);
-      });
-    }
-
-    // Cleanup function
-    return () => {
-      timeoutsRef.current.forEach(timeout => clearTimeout(timeout));
-      timeoutsRef.current.clear();
-    };
+    // Clear all previous reactions when new ones arrive
+    reactions.forEach(reaction => {
+      // Set timeout to remove each reaction after 5 seconds
+      setTimeout(() => {
+        const element = document.getElementById(`reaction-${reaction.id}`);
+        if (element) {
+          element.remove();
+        }
+      }, 5000);
+    });
   }, [reactions]);
 
   return (
     <div className="fixed inset-0 pointer-events-none z-50">
       <AnimatePresence>
-        {activeReactions.map((reaction) => (
+        {reactions.map((reaction) => (
           <motion.div
             key={reaction.id}
+            id={`reaction-${reaction.id}`}
             initial={{ 
               opacity: 0, 
               scale: 0,
