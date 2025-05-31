@@ -30,7 +30,7 @@ export function ReactionsOverlay({ reactions }: ReactionsOverlayProps) {
       newReactions.forEach(reaction => {
         setTimeout(() => {
           setActiveReactions(prev => prev.filter(r => r.id !== reaction.id));
-        }, 3000);
+        }, 5000);
       });
     }
   }, [reactions, activeReactions]);
@@ -55,7 +55,7 @@ export function ReactionsOverlay({ reactions }: ReactionsOverlayProps) {
             }}
             exit={{ opacity: 0, scale: 0 }}
             transition={{ 
-              duration: 3,
+              duration: 5,
               ease: "easeOut"
             }}
             className="absolute text-4xl select-none"

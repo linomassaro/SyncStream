@@ -1,4 +1,11 @@
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Smile } from "lucide-react";
 
 interface ReactionButtonsProps {
   onReaction: (emoji: string) => void;
@@ -17,19 +24,31 @@ const EMOJI_REACTIONS = [
 
 export function ReactionButtons({ onReaction }: ReactionButtonsProps) {
   return (
-    <div className="flex items-center space-x-1">
-      {EMOJI_REACTIONS.map((emoji) => (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
         <Button
-          key={emoji}
-          onClick={() => onReaction(emoji)}
           variant="ghost"
           size="sm"
-          className="p-2 hover:bg-gray-700 rounded-lg text-lg hover:scale-110 transition-transform"
-          title={`React with ${emoji}`}
+          className="p-2 hover:bg-gray-700 rounded-lg"
+          title="React"
         >
-          {emoji}
+          <Smile className="h-4 w-4 on-surface-variant" />
         </Button>
-      ))}
-    </div>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent className="surface-variant border-gray-600">
+        <div className="grid grid-cols-4 gap-1 p-2">
+          {EMOJI_REACTIONS.map((emoji) => (
+            <DropdownMenuItem
+              key={emoji}
+              onClick={() => onReaction(emoji)}
+              className="flex items-center justify-center p-2 hover:bg-gray-700 rounded cursor-pointer text-xl"
+              title={`React with ${emoji}`}
+            >
+              {emoji}
+            </DropdownMenuItem>
+          ))}
+        </div>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
