@@ -315,6 +315,8 @@ export default function StreamPage() {
         syncStatus={isConnected ? 'synced' : 'syncing'}
         viewerId={viewerId}
         isConnected={isConnected}
+        sendMessage={sendMessage}
+        lastMessage={lastMessage}
       />
       
       {/* Always show video player interface for all viewers */}

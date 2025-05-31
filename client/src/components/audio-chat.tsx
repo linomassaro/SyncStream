@@ -11,13 +11,15 @@ interface AudioChatProps {
   lastMessage: SyncMessage | null;
 }
 
-export function AudioChat({ sessionId, viewerId, isConnected }: AudioChatProps) {
+export function AudioChat({ sessionId, viewerId, isConnected, sendMessage, lastMessage }: AudioChatProps) {
   const [isMuted, setIsMuted] = useState(true);
   const [isInCall, setIsInCall] = useState(false);
   const [audioDevices, setAudioDevices] = useState<MediaDeviceInfo[]>([]);
   const [hasPermission, setHasPermission] = useState(false);
+  const [connectedPeers, setConnectedPeers] = useState<Set<string>>(new Set());
   const localStreamRef = useRef<MediaStream | null>(null);
   const audioElementsRef = useRef<Map<string, HTMLAudioElement>>(new Map());
+  const peerConnectionsRef = useRef<Map<string, RTCPeerConnection>>(new Map());
 
   // Get available audio devices
   useEffect(() => {
@@ -54,6 +56,60 @@ export function AudioChat({ sessionId, viewerId, isConnected }: AudioChatProps) 
     }
   };
 
+  // WebRTC Configuration
+  const rtcConfig = {
+    iceServers: [
+      { urls: 'stun:stun.l.google.com:19302' },
+      { urls: 'stun:stun1.l.google.com:19302' }
+    ]
+  };
+
+  // Create peer connection
+  const createPeerConnection = (remoteViewerId: string) => {
+    const pc = new RTCPeerConnection(rtcConfig);
+    
+    // Add local stream
+    if (localStreamRef.current) {
+      localStreamRef.current.getTracks().forEach(track => {
+        pc.addTrack(track, localStreamRef.current!);
+      });
+    }
+
+    // Handle remote stream
+    pc.ontrack = (event) => {
+      const remoteStream = event.streams[0];
+      if (remoteStream) {
+        const audioElement = new Audio();
+        audioElement.srcObject = remoteStream;
+        audioElement.autoplay = true;
+        audioElementsRef.current.set(remoteViewerId, audioElement);
+        setConnectedPeers(prev => {
+          const newSet = new Set(prev);
+          newSet.add(remoteViewerId);
+          return newSet;
+        });
+      }
+    };
+
+    // Handle ICE candidates
+    pc.onicecandidate = (event) => {
+      if (event.candidate) {
+        sendMessage({
+          type: 'webrtc-ice-candidate',
+          sessionId,
+          data: {
+            targetViewerId: remoteViewerId,
+            viewerId,
+            iceCandidate: event.candidate.toJSON()
+          }
+        });
+      }
+    };
+
+    peerConnectionsRef.current.set(remoteViewerId, pc);
+    return pc;
+  };
+
   // Start audio call
   const startCall = async () => {
     if (!hasPermission) {
@@ -72,10 +128,70 @@ export function AudioChat({ sessionId, viewerId, isConnected }: AudioChatProps) 
     }
   };
 
+  // Handle WebRTC messages
+  useEffect(() => {
+    if (!lastMessage) return;
+
+    const handleWebRTCMessage = async (message: SyncMessage) => {
+      if (!message.data?.viewerId || message.data.viewerId === viewerId) return;
+
+      const remoteViewerId = message.data.viewerId;
+
+      switch (message.type) {
+        case 'webrtc-offer':
+          if (message.data.targetViewerId === viewerId && message.data.offer) {
+            const pc = createPeerConnection(remoteViewerId);
+            await pc.setRemoteDescription(message.data.offer);
+            const answer = await pc.createAnswer();
+            await pc.setLocalDescription(answer);
+            
+            sendMessage({
+              type: 'webrtc-answer',
+              sessionId,
+              data: {
+                targetViewerId: remoteViewerId,
+                viewerId,
+                answer
+              }
+            });
+          }
+          break;
+
+        case 'webrtc-answer':
+          if (message.data.targetViewerId === viewerId && message.data.answer) {
+            const pc = peerConnectionsRef.current.get(remoteViewerId);
+            if (pc) {
+              await pc.setRemoteDescription(message.data.answer);
+            }
+          }
+          break;
+
+        case 'webrtc-ice-candidate':
+          if (message.data.targetViewerId === viewerId && message.data.iceCandidate) {
+            const pc = peerConnectionsRef.current.get(remoteViewerId);
+            if (pc) {
+              await pc.addIceCandidate(new RTCIceCandidate(message.data.iceCandidate));
+            }
+          }
+          break;
+      }
+    };
+
+    if (isInCall) {
+      handleWebRTCMessage(lastMessage);
+    }
+  }, [lastMessage, isInCall, sessionId, viewerId, sendMessage]);
+
   // End audio call
   const endCall = () => {
     setIsInCall(false);
     setIsMuted(true);
+
+    // Close all peer connections
+    peerConnectionsRef.current.forEach(pc => {
+      pc.close();
+    });
+    peerConnectionsRef.current.clear();
 
     // Stop all audio tracks
     if (localStreamRef.current) {
@@ -91,6 +207,7 @@ export function AudioChat({ sessionId, viewerId, isConnected }: AudioChatProps) 
       audio.srcObject = null;
     });
     audioElementsRef.current.clear();
+    setConnectedPeers(new Set());
     
     setHasPermission(false);
   };
