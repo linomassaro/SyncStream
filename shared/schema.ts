@@ -2,10 +2,19 @@ import { pgTable, text, serial, integer, boolean, timestamp, jsonb } from "drizz
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
+// Video source type
+export interface VideoSource {
+  id: string;
+  url: string;
+  title: string;
+  language?: string;
+}
+
 export const sessions = pgTable("sessions", {
   id: text("id").primaryKey(),
   videoUrl: text("video_url"),
-  videoSources: jsonb("video_sources").default([]),
+  videoSources: jsonb("video_sources").$type<VideoSource[]>().default([]),
+  selectedSourceId: text("selected_source_id"),
   isPlaying: boolean("is_playing").default(false),
   currentTime: integer("current_time").default(0),
   createdAt: timestamp("created_at").defaultNow(),

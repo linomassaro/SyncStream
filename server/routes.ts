@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { WebSocketServer, WebSocket } from "ws";
 import { storage } from "./storage";
-import { insertSessionSchema, type SyncMessage } from "@shared/schema";
+import { insertSessionSchema, type SyncMessage, type VideoSource } from "@shared/schema";
 import { z } from "zod";
 import { nanoid } from "nanoid";
 
@@ -83,8 +83,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (message.type === 'video-change' && message.data?.videoUrl) {
           await storage.updateSession(sessionId, {
             videoUrl: message.data.videoUrl,
+            videoSources: message.data.videoSources || [],
+            selectedSourceId: message.data.selectedSourceId,
             currentTime: 0,
             isPlaying: false
+          });
+        }
+
+        if (message.type === 'source-change' && message.data?.selectedSourceId && message.data?.videoUrl) {
+          await storage.updateSession(sessionId, {
+            selectedSourceId: message.data.selectedSourceId,
+            videoUrl: message.data.videoUrl,
+            currentTime: message.data.currentTime || 0,
+            isPlaying: message.data.isPlaying || false
           });
         }
 

@@ -129,8 +129,14 @@ export default function StreamPage() {
     if (session && typeof session === 'object') {
       const sessionData = session as any;
       setVideoUrl(sessionData.videoUrl || '');
+      setVideoSources(sessionData.videoSources || []);
       setIsPlaying(sessionData.isPlaying || false);
       setCurrentTime(sessionData.currentTime || 0);
+      
+      // Set initial selected source
+      if (sessionData.videoSources && sessionData.videoSources.length > 0) {
+        setSelectedSourceId(sessionData.videoSources[0].id);
+      }
     }
   }, [session]);
 
@@ -143,15 +149,49 @@ export default function StreamPage() {
     createSessionMutation.mutate({ sessionId: inputSessionId });
   };
 
-  const handleVideoLoad = (url: string) => {
+  const handleVideoLoad = (url: string, sources?: VideoSource[]) => {
     setVideoUrl(url);
     setShowUrlPanel(false);
     
-    sendMessage({
-      type: 'video-change',
-      sessionId,
-      data: { videoUrl: url }
-    });
+    if (sources && sources.length > 0) {
+      setVideoSources(sources);
+      setSelectedSourceId(sources[0].id);
+      
+      sendMessage({
+        type: 'video-change',
+        sessionId,
+        data: { 
+          videoUrl: url,
+          videoSources: sources,
+          selectedSourceId: sources[0].id
+        }
+      });
+    } else {
+      sendMessage({
+        type: 'video-change',
+        sessionId,
+        data: { videoUrl: url }
+      });
+    }
+  };
+
+  const handleSourceChange = (sourceId: string) => {
+    const source = videoSources.find(s => s.id === sourceId);
+    if (source) {
+      setSelectedSourceId(sourceId);
+      setVideoUrl(source.url);
+      
+      sendMessage({
+        type: 'source-change',
+        sessionId,
+        data: { 
+          selectedSourceId: sourceId,
+          videoUrl: source.url,
+          currentTime,
+          isPlaying
+        }
+      });
+    }
   };
 
   const handlePlayPause = () => {
@@ -260,6 +300,8 @@ export default function StreamPage() {
       {/* Always show video player interface for all viewers */}
       <VideoPlayer
         videoUrl={videoUrl}
+        videoSources={videoSources}
+        selectedSourceId={selectedSourceId}
         isPlaying={isPlaying}
         currentTime={currentTime}
         duration={duration}
@@ -267,6 +309,7 @@ export default function StreamPage() {
         onSeek={handleSeek}
         onProgress={handleProgress}
         onDuration={setDuration}
+        onSourceChange={handleSourceChange}
       />
       
       {showUrlPanel && (
