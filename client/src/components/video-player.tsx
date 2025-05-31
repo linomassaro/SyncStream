@@ -284,21 +284,9 @@ export function VideoPlayer({
         ) : (
           <div className="w-full h-full flex items-center justify-center bg-gray-900">
             <div className="text-center space-y-4">
-              {videoUrl ? (
-                // Video exists but waiting for delay
-                <>
-                  <div className="w-16 h-16 border-4 border-gray-500 border-t-blue-500 rounded-full animate-spin mx-auto" />
-                  <p className="text-gray-400 text-lg">Waiting for video delay</p>
-                  <p className="text-gray-500 text-sm">Video will start when time catches up</p>
-                </>
-              ) : (
-                // No video loaded
-                <>
-                  <Play className="h-16 w-16 text-gray-500 mx-auto" />
-                  <p className="text-gray-400 text-lg">No video loaded</p>
-                  <p className="text-gray-500 text-sm">Click the + button to add a video URL</p>
-                </>
-              )}
+              <Play className="h-16 w-16 text-gray-500 mx-auto" />
+              <p className="text-gray-400 text-lg">No video loaded</p>
+              <p className="text-gray-500 text-sm">Click the + button to add a video URL</p>
             </div>
           </div>
         )}

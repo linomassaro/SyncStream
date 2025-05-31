@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { nanoid } from "nanoid";
@@ -24,7 +24,6 @@ export default function StreamPage() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
-
 
   // WebSocket connection for real-time sync
   const { 
@@ -73,7 +72,7 @@ export default function StreamPage() {
           // Apply delay adjustment to received base time
           const adjustedTime = getAdjustedTime(message.data.currentTime || 0);
           setCurrentTime(adjustedTime);
-          setSessionIsPlaying(message.data.isPlaying || false);
+          setIsPlaying(message.data.isPlaying || false);
           if (message.data.videoUrl) {
             setVideoUrl(message.data.videoUrl);
           }
@@ -86,7 +85,7 @@ export default function StreamPage() {
         }
         break;
       case 'play':
-        setSessionIsPlaying(true);
+        setIsPlaying(true);
         if (message.data?.currentTime !== undefined) {
           // Apply delay adjustment to received base time
           const adjustedTime = getAdjustedTime(message.data.currentTime);
@@ -94,7 +93,7 @@ export default function StreamPage() {
         }
         break;
       case 'pause':
-        setSessionIsPlaying(false);
+        setIsPlaying(false);
         if (message.data?.currentTime !== undefined) {
           // Apply delay adjustment to received base time
           const adjustedTime = getAdjustedTime(message.data.currentTime);
@@ -198,27 +197,8 @@ export default function StreamPage() {
   // Calculate adjusted time for this viewer based on source delay
   const getAdjustedTime = (baseTime: number) => {
     const delay = getCurrentSourceDelay();
-    return baseTime + delay;
+    return Math.max(0, baseTime + delay);
   };
-
-  // Check if current time is within valid playback range
-  const isTimeInValidRange = (time: number) => {
-    return time >= 0 && (duration === 0 || time <= duration);
-  };
-
-  // Track the session's actual playing state (from WebSocket messages)
-  const [sessionIsPlaying, setSessionIsPlaying] = useState(false);
-  
-  // Auto-resume logic: if session is playing and time becomes valid, start playing
-  useEffect(() => {
-    const currentTimeValid = isTimeInValidRange(currentTime);
-    
-    if (sessionIsPlaying && currentTimeValid && !isPlaying) {
-      setIsPlaying(true);
-    } else if (!currentTimeValid && isPlaying) {
-      setIsPlaying(false);
-    }
-  }, [currentTime, duration, sessionIsPlaying, isPlaying]);
 
   // Calculate base time from adjusted time (for sending to server)
   const getBaseTimeFromAdjusted = (adjustedTime: number) => {
@@ -337,11 +317,11 @@ export default function StreamPage() {
       
       {/* Always show video player interface for all viewers */}
       <VideoPlayer
-        videoUrl={isTimeInValidRange(currentTime) ? videoUrl : ''}
+        videoUrl={videoUrl}
         videoSources={videoSources}
         selectedSourceId={selectedSourceId}
-        isPlaying={isPlaying && isTimeInValidRange(currentTime)}
-        currentTime={Math.max(0, currentTime)}
+        isPlaying={isPlaying}
+        currentTime={currentTime}
         duration={duration}
         onPlayPause={handlePlayPause}
         onSeek={handleSeek}
