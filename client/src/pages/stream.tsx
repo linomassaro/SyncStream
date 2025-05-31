@@ -10,6 +10,7 @@ import { useWebSocket } from "@/hooks/use-websocket";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Play } from "lucide-react";
+import type { VideoSource } from "@shared/schema";
 
 export default function StreamPage() {
   const params = useParams();
@@ -18,6 +19,8 @@ export default function StreamPage() {
   const [viewerId] = useState(() => nanoid());
   const [showUrlPanel, setShowUrlPanel] = useState(false);
   const [videoUrl, setVideoUrl] = useState('');
+  const [videoSources, setVideoSources] = useState<VideoSource[]>([]);
+  const [selectedSourceId, setSelectedSourceId] = useState<string>('');
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -71,6 +74,12 @@ export default function StreamPage() {
           if (message.data.videoUrl) {
             setVideoUrl(message.data.videoUrl);
           }
+          if (message.data.videoSources) {
+            setVideoSources(message.data.videoSources);
+          }
+          if (message.data.selectedSourceId) {
+            setSelectedSourceId(message.data.selectedSourceId);
+          }
         }
         break;
       case 'play':
@@ -95,6 +104,17 @@ export default function StreamPage() {
           setVideoUrl(message.data.videoUrl);
           setCurrentTime(0);
           setIsPlaying(false);
+        }
+        if (message.data?.videoSources) {
+          setVideoSources(message.data.videoSources);
+        }
+        break;
+      case 'source-change':
+        if (message.data?.selectedSourceId && message.data?.videoUrl) {
+          setSelectedSourceId(message.data.selectedSourceId);
+          setVideoUrl(message.data.videoUrl);
+          setCurrentTime(message.data.currentTime || 0);
+          setIsPlaying(message.data.isPlaying || false);
         }
         break;
       case 'viewer-join':

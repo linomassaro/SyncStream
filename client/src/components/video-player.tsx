@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import ReactPlayer from "react-player";
-import { Play, Pause, SkipBack, SkipForward, Volume2, VolumeX, Maximize, Settings, Languages, Subtitles } from "lucide-react";
+import { Play, Pause, SkipBack, SkipForward, Volume2, VolumeX, Maximize, Settings, Languages, Subtitles, Film } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import {
@@ -11,9 +11,12 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import type { VideoSource } from "@shared/schema";
 
 interface VideoPlayerProps {
   videoUrl: string;
+  videoSources?: VideoSource[];
+  selectedSourceId?: string;
   isPlaying: boolean;
   currentTime: number;
   duration: number;
@@ -21,17 +24,21 @@ interface VideoPlayerProps {
   onSeek: (time: number) => void;
   onProgress: (played: number) => void;
   onDuration: (duration: number) => void;
+  onSourceChange?: (sourceId: string) => void;
 }
 
 export function VideoPlayer({
   videoUrl,
+  videoSources = [],
+  selectedSourceId,
   isPlaying,
   currentTime,
   duration,
   onPlayPause,
   onSeek,
   onProgress,
-  onDuration
+  onDuration,
+  onSourceChange
 }: VideoPlayerProps) {
   const [showControls, setShowControls] = useState(true);
   const [volume, setVolume] = useState(0.8);
@@ -264,9 +271,6 @@ export function VideoPlayer({
                 }
               },
               file: {
-                attributes: {
-                  crossOrigin: 'anonymous'
-                },
                 tracks: subtitleTracks.map((track, index) => ({
                   kind: 'subtitles',
                   src: track.src,
@@ -400,6 +404,42 @@ export function VideoPlayer({
               </div>
 
               <div className="flex items-center space-x-4">
+                {/* Video Source Selection */}
+                {videoSources.length > 1 && (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="p-2 hover:bg-gray-700 rounded-lg"
+                        title="Video sources"
+                      >
+                        <Film className="h-4 w-4 on-surface-variant" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent className="surface-variant border-gray-600">
+                      <DropdownMenuLabel className="on-surface">Video Sources</DropdownMenuLabel>
+                      <DropdownMenuSeparator className="bg-gray-600" />
+                      {videoSources.map((source) => (
+                        <DropdownMenuItem
+                          key={source.id}
+                          onClick={() => onSourceChange?.(source.id)}
+                          className={`on-surface hover:bg-gray-700 ${
+                            selectedSourceId === source.id ? 'bg-gray-700' : ''
+                          }`}
+                        >
+                          <div className="flex flex-col">
+                            <span>{source.title}</span>
+                            {source.language && (
+                              <span className="text-xs on-surface-variant">{source.language}</span>
+                            )}
+                          </div>
+                        </DropdownMenuItem>
+                      ))}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                )}
+
                 {/* Audio Track Selection */}
                 {audioTracks.length > 0 && (
                   <DropdownMenu>
