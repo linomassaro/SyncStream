@@ -1,0 +1,119 @@
+react-dom.development.js:11099 Uncaught NotFoundError: Failed to execute 'removeChild' on 'Node': The node to be removed is not a child of this node.
+    at removeChild (react-dom.development.js:11099:18)
+    at commitDeletionEffectsOnFiber (react-dom.development.js:24067:15)
+    at recursivelyTraverseDeletionEffects (react-dom.development.js:24028:5)
+    at commitDeletionEffectsOnFiber (react-dom.development.js:24209:9)
+    at recursivelyTraverseDeletionEffects (react-dom.development.js:24028:5)
+    at commitDeletionEffectsOnFiber (react-dom.development.js:24157:9)
+    at recursivelyTraverseDeletionEffects (react-dom.development.js:24028:5)
+    at commitDeletionEffectsOnFiber (react-dom.development.js:24209:9)
+    at recursivelyTraverseDeletionEffects (react-dom.development.js:24028:5)
+    at commitDeletionEffectsOnFiber (react-dom.development.js:24157:9)
+removeChild @ react-dom.development.js:11099
+commitDeletionEffectsOnFiber @ react-dom.development.js:24067
+recursivelyTraverseDeletionEffects @ react-dom.development.js:24028
+commitDeletionEffectsOnFiber @ react-dom.development.js:24209
+recursivelyTraverseDeletionEffects @ react-dom.development.js:24028
+commitDeletionEffectsOnFiber @ react-dom.development.js:24157
+recursivelyTraverseDeletionEffects @ react-dom.development.js:24028
+commitDeletionEffectsOnFiber @ react-dom.development.js:24209
+recursivelyTraverseDeletionEffects @ react-dom.development.js:24028
+commitDeletionEffectsOnFiber @ react-dom.development.js:24157
+commitDeletionEffects @ react-dom.development.js:24015
+recursivelyTraverseMutationEffects @ react-dom.development.js:24298
+commitMutationEffectsOnFiber @ react-dom.development.js:24332
+recursivelyTraverseMutationEffects @ react-dom.development.js:24312
+commitMutationEffectsOnFiber @ react-dom.development.js:24385
+recursivelyTraverseMutationEffects @ react-dom.development.js:24312
+commitMutationEffectsOnFiber @ react-dom.development.js:24332
+recursivelyTraverseMutationEffects @ react-dom.development.js:24312
+commitMutationEffectsOnFiber @ react-dom.development.js:24385
+recursivelyTraverseMutationEffects @ react-dom.development.js:24312
+commitMutationEffectsOnFiber @ react-dom.development.js:24385
+recursivelyTraverseMutationEffects @ react-dom.development.js:24312
+commitMutationEffectsOnFiber @ react-dom.development.js:24332
+recursivelyTraverseMutationEffects @ react-dom.development.js:24312
+commitMutationEffectsOnFiber @ react-dom.development.js:24385
+recursivelyTraverseMutationEffects @ react-dom.development.js:24312
+commitMutationEffectsOnFiber @ react-dom.development.js:24332
+recursivelyTraverseMutationEffects @ react-dom.development.js:24312
+commitMutationEffectsOnFiber @ react-dom.development.js:24615
+recursivelyTraverseMutationEffects @ react-dom.development.js:24312
+commitMutationEffectsOnFiber @ react-dom.development.js:24332
+recursivelyTraverseMutationEffects @ react-dom.development.js:24312
+commitMutationEffectsOnFiber @ react-dom.development.js:24332
+recursivelyTraverseMutationEffects @ react-dom.development.js:24312
+commitMutationEffectsOnFiber @ react-dom.development.js:24332
+recursivelyTraverseMutationEffects @ react-dom.development.js:24312
+commitMutationEffectsOnFiber @ react-dom.development.js:24615
+recursivelyTraverseMutationEffects @ react-dom.development.js:24312
+commitMutationEffectsOnFiber @ react-dom.development.js:24332
+recursivelyTraverseMutationEffects @ react-dom.development.js:24312
+commitMutationEffectsOnFiber @ react-dom.development.js:24332
+recursivelyTraverseMutationEffects @ react-dom.development.js:24312
+commitMutationEffectsOnFiber @ react-dom.development.js:24615
+recursivelyTraverseMutationEffects @ react-dom.development.js:24312
+commitMutationEffectsOnFiber @ react-dom.development.js:24332
+recursivelyTraverseMutationEffects @ react-dom.development.js:24312
+commitMutationEffectsOnFiber @ react-dom.development.js:24332
+recursivelyTraverseMutationEffects @ react-dom.development.js:24312
+commitMutationEffectsOnFiber @ react-dom.development.js:24471
+commitMutationEffects @ react-dom.development.js:24282
+commitRootImpl @ react-dom.development.js:26849
+commitRoot @ react-dom.development.js:26721
+finishConcurrentRender @ react-dom.development.js:26020
+performConcurrentWorkOnRoot @ react-dom.development.js:25848
+workLoop @ scheduler.development.js:266
+flushWork @ scheduler.development.js:239
+performWorkUntilDeadline @ scheduler.development.js:533
+2react-dom.development.js:18704 The above error occurred in the <PresenceChild> component:
+
+    at PresenceChild (https://cce962f9-3ada-46a6-83f1-723af1f645c0-00-1a37mvcy51pyw.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/framer-motion.js?v=e7fcf894:7742:24)
+    at AnimatePresence (https://cce962f9-3ada-46a6-83f1-723af1f645c0-00-1a37mvcy51pyw.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/framer-motion.js?v=e7fcf894:7800:26)
+    at div
+    at ReactionsOverlay (https://cce962f9-3ada-46a6-83f1-723af1f645c0-00-1a37mvcy51pyw.spock.replit.dev/src/components/reactions-overlay.tsx:20:36)
+    at div
+    at div
+    at VideoPlayer (https://cce962f9-3ada-46a6-83f1-723af1f645c0-00-1a37mvcy51pyw.spock.replit.dev/src/components/video-player.tsx:34:3)
+    at div
+    at StreamPage (https://cce962f9-3ada-46a6-83f1-723af1f645c0-00-1a37mvcy51pyw.spock.replit.dev/src/pages/stream.tsx:32:18)
+    at Route (https://cce962f9-3ada-46a6-83f1-723af1f645c0-00-1a37mvcy51pyw.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=e7fcf894:323:16)
+    at Switch (https://cce962f9-3ada-46a6-83f1-723af1f645c0-00-1a37mvcy51pyw.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=e7fcf894:379:17)
+    at Router
+    at Provider (https://cce962f9-3ada-46a6-83f1-723af1f645c0-00-1a37mvcy51pyw.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-XBDJYPEM.js?v=e7fcf894:32:15)
+    at TooltipProvider (https://cce962f9-3ada-46a6-83f1-723af1f645c0-00-1a37mvcy51pyw.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-tooltip.js?v=e7fcf894:55:5)
+    at QueryClientProvider (https://cce962f9-3ada-46a6-83f1-723af1f645c0-00-1a37mvcy51pyw.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@tanstack_react-query.js?v=e7fcf894:2805:3)
+    at App
+
+Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://reactjs.org/link/error-boundaries to learn more about error boundaries.
+logCapturedError @ react-dom.development.js:18704
+update.callback @ react-dom.development.js:18737
+callCallback @ react-dom.development.js:15036
+commitUpdateQueue @ react-dom.development.js:15057
+commitLayoutEffectOnFiber @ react-dom.development.js:23430
+commitLayoutMountEffects_complete @ react-dom.development.js:24727
+commitLayoutEffects_begin @ react-dom.development.js:24713
+commitLayoutEffects @ react-dom.development.js:24651
+commitRootImpl @ react-dom.development.js:26862
+commitRoot @ react-dom.development.js:26721
+performSyncWorkOnRoot @ react-dom.development.js:26156
+flushSyncCallbacks @ react-dom.development.js:12042
+commitRootImpl @ react-dom.development.js:26998
+commitRoot @ react-dom.development.js:26721
+finishConcurrentRender @ react-dom.development.js:26020
+performConcurrentWorkOnRoot @ react-dom.development.js:25848
+workLoop @ scheduler.development.js:266
+flushWork @ scheduler.development.js:239
+performWorkUntilDeadline @ scheduler.development.js:533
+react-dom.development.js:11099 Uncaught NotFoundError: Failed to execute 'removeChild' on 'Node': The node to be removed is not a child of this node.
+    at removeChild (react-dom.development.js:11099:18)
+    at commitDeletionEffectsOnFiber (react-dom.development.js:24067:15)
+    at recursivelyTraverseDeletionEffects (react-dom.development.js:24028:5)
+    at commitDeletionEffectsOnFiber (react-dom.development.js:24209:9)
+    at recursivelyTraverseDeletionEffects (react-dom.development.js:24028:5)
+    at commitDeletionEffectsOnFiber (react-dom.development.js:24157:9)
+    at recursivelyTraverseDeletionEffects (react-dom.development.js:24028:5)
+    at commitDeletionEffectsOnFiber (react-dom.development.js:24209:9)
+    at recursivelyTraverseDeletionEffects (react-dom.development.js:24028:5)
+    at commitDeletionEffectsOnFiber (react-dom.development.js:24157:9)

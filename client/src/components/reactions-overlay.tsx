@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 
 export interface Reaction {
   id: string;
@@ -15,26 +15,29 @@ interface ReactionsOverlayProps {
 }
 
 export function ReactionsOverlay({ reactions }: ReactionsOverlayProps) {
+  const [visibleReactions, setVisibleReactions] = useState<Reaction[]>([]);
+
   useEffect(() => {
-    // Clear all previous reactions when new ones arrive
-    reactions.forEach(reaction => {
-      // Set timeout to remove each reaction after 5 seconds
-      setTimeout(() => {
-        const element = document.getElementById(`reaction-${reaction.id}`);
-        if (element) {
-          element.remove();
-        }
+    // Only show the latest reaction
+    if (reactions.length > 0) {
+      const latestReaction = reactions[reactions.length - 1];
+      setVisibleReactions([latestReaction]);
+
+      // Remove the reaction after 5 seconds
+      const timer = setTimeout(() => {
+        setVisibleReactions([]);
       }, 5000);
-    });
+
+      return () => clearTimeout(timer);
+    }
   }, [reactions]);
 
   return (
     <div className="fixed inset-0 pointer-events-none z-50">
       <AnimatePresence>
-        {reactions.map((reaction) => (
+        {visibleReactions.map((reaction) => (
           <motion.div
             key={reaction.id}
-            id={`reaction-${reaction.id}`}
             initial={{ 
               opacity: 0, 
               scale: 0,
