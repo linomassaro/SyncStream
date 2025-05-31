@@ -209,13 +209,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Add video source to session
   app.post('/api/sessions/:id/sources', async (req, res) => {
     try {
-      const { url, title, addedBy, delay } = req.body;
+      const { url, title, addedBy } = req.body;
       const source = {
         id: nanoid(),
         url,
         title: title || 'Untitled Video',
-        addedBy,
-        delay: delay || 0
+        addedBy
       };
       
       const sources = await storage.addVideoSource(req.params.id, source);
@@ -235,25 +234,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Update video source delay
-  app.patch('/api/sessions/:id/sources/:sourceId', async (req, res) => {
-    try {
-      const { delay } = req.body;
-      const sources = await storage.updateVideoSourceDelay(req.params.id, req.params.sourceId, delay);
-      res.json(sources);
-    } catch (error) {
-      res.status(500).json({ message: 'Server error' });
-    }
-  });
-
   // Get video sources for session
   app.get('/api/sessions/:id/sources', async (req, res) => {
     try {
       const sources = await storage.getVideoSources(req.params.id);
-      console.log(`Getting sources for session ${req.params.id}:`, sources);
       res.json(sources);
     } catch (error) {
-      console.error('Error getting sources:', error);
       res.status(500).json({ message: 'Server error' });
     }
   });

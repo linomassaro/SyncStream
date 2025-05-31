@@ -109,7 +109,6 @@ export default function StreamPage() {
         break;
       case 'source-add':
       case 'source-remove':
-      case 'source-update':
         if (message.data?.videoSources) {
           setVideoSources(message.data.videoSources);
         }
@@ -139,14 +138,8 @@ export default function StreamPage() {
     }
   }, [session, sessionId, queryClient]);
 
-  // Combine API data and local state - prefer the one with more sources
-  const effectiveVideoSources = (() => {
-    const apiSources = Array.isArray(sourcesData) ? sourcesData : [];
-    const localSources = Array.isArray(videoSources) ? videoSources : [];
-    
-    // Use whichever has more sources, or API if equal
-    return apiSources.length >= localSources.length ? apiSources : localSources;
-  })();
+  // Use API data as primary source, fall back to local state
+  const effectiveVideoSources = Array.isArray(sourcesData) && sourcesData.length > 0 ? sourcesData : videoSources;
 
   const handleCreateSession = () => {
     const newSessionId = nanoid();
@@ -168,13 +161,12 @@ export default function StreamPage() {
     });
   };
 
-  const handleAddSource = async (url: string, title: string, delay?: number) => {
+  const handleAddSource = async (url: string, title: string) => {
     try {
       const response = await apiRequest('POST', `/api/sessions/${sessionId}/sources`, {
         url,
         title,
-        addedBy: viewerId,
-        delay: delay || 0
+        addedBy: viewerId
       });
       const sources = await response.json();
       
@@ -235,29 +227,6 @@ export default function StreamPage() {
     }
   };
 
-  const handleUpdateSourceDelay = async (sourceId: string, delay: number) => {
-    try {
-      const response = await apiRequest('PATCH', `/api/sessions/${sessionId}/sources/${sourceId}`, {
-        delay
-      });
-      const sources = await response.json();
-      
-      // Update local state immediately
-      setVideoSources(sources);
-      
-      // Invalidate query cache to ensure consistency
-      queryClient.invalidateQueries({ queryKey: ['/api/sessions', sessionId, 'sources'] });
-      
-      sendMessage({
-        type: 'source-update',
-        sessionId,
-        data: { videoSources: sources }
-      });
-    } catch (error) {
-      console.error('Failed to update video source delay:', error);
-    }
-  };
-
   const handlePlayPause = () => {
     const newIsPlaying = !isPlaying;
     setIsPlaying(newIsPlaying);
@@ -280,16 +249,6 @@ export default function StreamPage() {
       sessionId,
       data: { currentTime: time }
     });
-  };
-
-  // Apply delay to current time based on selected source
-  const getAdjustedCurrentTime = () => {
-    if (!selectedSourceId) return currentTime;
-    
-    const selectedSource = effectiveVideoSources.find(s => s.id === selectedSourceId);
-    const delay = selectedSource?.delay || 0;
-    
-    return Math.max(0, currentTime + delay);
   };
 
   const handleProgress = (played: number) => {
@@ -375,7 +334,7 @@ export default function StreamPage() {
       <VideoPlayer
         videoUrl={videoUrl}
         isPlaying={isPlaying}
-        currentTime={getAdjustedCurrentTime()}
+        currentTime={currentTime}
         duration={duration}
         onPlayPause={handlePlayPause}
         onSeek={handleSeek}
@@ -397,7 +356,6 @@ export default function StreamPage() {
           onAddSource={handleAddSource}
           onRemoveSource={handleRemoveSource}
           onSelectSource={handleSelectSource}
-          onUpdateSourceDelay={handleUpdateSourceDelay}
           onClose={() => setShowSourceManager(false)}
         />
       )}
